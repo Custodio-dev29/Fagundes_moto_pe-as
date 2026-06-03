@@ -45,7 +45,7 @@ export class InventoryView {
                                         <td>R$ ${purchasePrice.toFixed(2)}</td>
                                         <td>R$ ${price.toFixed(2)}</td>
                                         <td>${margin}%</td>
-                                        <td> ${stock <= minStock ? 'low' : ''}${stock}</td>
+                                        <td style="color: ${stock < minStock ? 'white' : 'inherit'}; background-color: ${stock < minStock ? '#dd4c62' : 'inherit'};">${stock}</td>
                                         <td>${minStock}</td>
                                         <td>
                                             <button class="btn-edit-action" data-id="${p.id}" title="Editar item">
@@ -93,7 +93,7 @@ export class InventoryView {
                                         <td><strong>${p.id}</strong></td>
                                         <td>${p.name}</td>
                                         <td>R$ ${price.toFixed(2)}</td>
-                                        <td>${stock <= minStock ? 'low' : ''}${stock}</td>
+                                        <td style="color: ${stock <= minStock ? 'red' : 'inherit'}; font-weight: ${stock <= minStock ? 'bold' : 'normal'};">${stock}</td>
                                         <td>
                                             <button class="btn-edit-action" data-id="${p.id}" title="Editar item">
                                                 <i class="fa-solid fa-pen-to-square"></i>
