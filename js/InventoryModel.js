@@ -41,8 +41,10 @@ export class InventoryModel {
         const newProduct = {
             id: finalId,
             name: product.name.trim(),
+            purchasePrice: parseFloat(product.purchasePrice),
             price: parseFloat(product.price),
             stock: parseInt(product.stock),
+            minStock: parseInt(product.minStock),
             updatedAt: new Date().toISOString()
         };
         
@@ -84,8 +86,10 @@ export class InventoryModel {
                 ...products[index],
                 id: newId,
                 name: data.name.trim(),
+                purchasePrice: parseFloat(data.purchasePrice),
                 price: parseFloat(data.price),
                 stock: parseInt(data.stock),
+                minStock: parseInt(data.minStock),
                 updatedAt: new Date().toISOString()
             };
             localStorage.setItem(this.storageKey, JSON.stringify(products));

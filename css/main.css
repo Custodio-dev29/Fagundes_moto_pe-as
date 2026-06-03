@@ -1,9 +1,10 @@
 :root {
-    --sidebar-bg: #1a1a1a;
-    --sidebar-color: #adb5bd;
-    --sidebar-hover-bg: #252525;
+    --sidebar1-bg: #b30b0b;
+    --sidebar-bg: #059c0d;
+    --sidebar-color: #ccc8c8;
+    --sidebar-hover-bg: #8b0000;
     --sidebar-active-color: #fff;
-    --primary-red: #f5e7e7;
+    --primary-red: #fcfcfc;
     --transition-speed: 0.3s;
 }
 
@@ -22,7 +23,7 @@ body {
 .sidebar {
     width: 260px;
     min-width: 260px;
-    background-color: var(--sidebar-bg);
+    background-color: var(--sidebar1-bg);
     color: var(--sidebar-color);
     transition: width var(--transition-speed), margin-left var(--transition-speed);
     z-index: 1000;
@@ -177,7 +178,7 @@ body {
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
-    margin-top: 10px;
+    width: 50%;
 }
 
 .inventory-table {
@@ -242,11 +243,12 @@ body {
 .btn-secondary {
     flex: 1;
     padding: 12px;
-    background: #6c757d;
+    background: #e91818;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    width: 50%;
 }
 
 .stock-badge.low, .stock-badge-btn.low { background: #ffebee; color: #d32f2f; }
