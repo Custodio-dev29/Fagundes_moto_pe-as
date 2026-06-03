@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Fagundes Moto Peças</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/script.js" type="module"></script>
+</head>
+<body>
+    <div class="login-card">
+        <header>
+            <h1 id="auth-title">Fagundes Moto Peças</h1>
+        </header>
+        
+        <form id="loginForm" novalidate>
+            <div class="form-group">
+                <label for="email">E-mail ou Usuário</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="exemplo@moto.com" 
+                    required 
+                    autocomplete="username"
+                    aria-describedby="emailError"
+                >
+                <div id="emailError" class="error-msg" aria-live="polite">Por favor, insira um e-mail válido.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    placeholder="••••••••" 
+                    required 
+                    minlength="8" 
+                    autocomplete="current-password"
+                    aria-describedby="passwordError"
+                >
+                <div id="passwordError" class="error-msg" aria-live="polite">A senha deve ter pelo menos 8 caracteres.</div>
+            </div>
+
+            <div class="form-group" id="confirm-password-group" style="display: none;">
+                <label for="confirmPassword">Confirmar Senha</label>
+                <input 
+                    type="password" 
+                    id="confirmPassword" 
+                    name="confirmPassword" 
+                    placeholder="••••••••" 
+                    autocomplete="new-password"
+                    aria-describedby="confirmPasswordError"
+                >
+                <div id="confirmPasswordError" class="error-msg" aria-live="polite">As senhas não coincidem.</div>
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn-login">Acessar Sistema</button>
+        </form>
+
+        <div class="auth-toggle">
+            <p id="toggle-text">Não tem uma conta? <a href="#" id="toggle-auth">Cadastre-se</a></p>
+        </div>
+    </div>
+</body>
+</html>

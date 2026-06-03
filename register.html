@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - Fagundes Moto Peças</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/script.js" type="module"></script>
+</head>
+<body>
+    <div class="login-card">
+        <header>
+            <h1 id="auth-title">Criar Conta</h1>
+        </header>
+        
+        <form id="loginForm" novalidate>
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="exemplo@moto.com" 
+                    required 
+                >
+                <div id="emailError" class="error-msg">Por favor, insira um e-mail válido.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    placeholder="Mínimo 8 caracteres" 
+                    required 
+                >
+                <div id="passwordError" class="error-msg">A senha deve ter pelo menos 8 caracteres.</div>
+            </div>
+
+            <div class="form-group" id="confirm-password-group">
+                <label for="confirmPassword">Confirmar Senha</label>
+                <input 
+                    type="password" 
+                    id="confirmPassword" 
+                    name="confirmPassword" 
+                    placeholder="Repita sua senha"
+                >
+                <div id="confirmPasswordError" class="error-msg">As senhas não coincidem.</div>
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn-login">Cadastrar</button>
+        </form>
+
+        <div class="auth-toggle">
+            <p id="toggle-text">Já tem uma conta? <a href="index.html" id="toggle-auth">Faça Login</a></p>
+        </div>
+    </div>
+    <script>
+        // Pequeno ajuste para garantir que esta página comece no modo de cadastro
+        localStorage.setItem('auth_initial_mode', 'register');
+    </script>
+</body>
+</html>

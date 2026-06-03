@@ -1,0 +1,304 @@
+:root {
+    --sidebar-bg: #1a1a1a;
+    --sidebar-color: #adb5bd;
+    --sidebar-hover-bg: #252525;
+    --sidebar-active-color: #fff;
+    --primary-red: #f5e7e7;
+    --transition-speed: 0.3s;
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f8f9fa;
+}
+
+.layout {
+    display: flex;
+    height: 100vh;
+}
+
+/* Sidebar Styles */
+.sidebar {
+    width: 260px;
+    min-width: 260px;
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-color);
+    transition: width var(--transition-speed), margin-left var(--transition-speed);
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.sidebar-header {
+    padding: 24px;
+    font-weight: bold;
+    color: var(--primary-red);
+    border-bottom: 1px solid #333;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.menu-header {
+    padding: 20px 20px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.5;
+}
+
+.menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.menu-item a {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: background var(--transition-speed);
+}
+
+.menu-item a:hover {
+    background-color: var(--sidebar-hover-bg);
+    color: var(--sidebar-active-color);
+}
+
+.menu-item.active a {
+    color: var(--sidebar-active-color);
+    background-color: var(--sidebar-hover-bg);
+    border-left: 4px solid var(--primary-red);
+}
+
+.menu-icon {
+    width: 35px;
+    min-width: 35px;
+    font-size: 18px;
+}
+
+/* Main Content Area */
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+}
+
+.content-header {
+    padding: 15px 25px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.btn-toggle {
+    font-size: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-right: 20px;
+    color: #333;
+}
+
+.content-body {
+    padding: 25px;
+}
+
+/* Botão de Ação no Header */
+.btn-primary-action {
+    margin-left: auto;
+    background-color: var(--sidebar-bg);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.btn-primary-action:hover {
+    background-color: #333;
+    transform: translateY(-1px);
+}
+
+/* Estilos para Estoque e Cadastro */
+.inventory-section h2 {
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.inventory-header {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.product-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.form-group-inventory {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group-inventory label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #666;
+}
+
+.form-group-inventory input {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.btn-submit-inventory {
+    grid-column: 1 / -1;
+    padding: 12px;
+    background: var(--sidebar-bg);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.inventory-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.inventory-table th, .inventory-table td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.stock-badge, .stock-badge-btn {
+    background: #e1f5fe;
+    color: #0288d1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.2s;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+.modal.active { display: flex; }
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.modal-header h3 { margin: 0 0 10px 0; color: #333; }
+.modal-header p { font-size: 14px; color: #666; margin-bottom: 20px; }
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 25px;
+}
+
+.btn-secondary {
+    flex: 1;
+    padding: 12px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.stock-badge.low, .stock-badge-btn.low { background: #ffebee; color: #d32f2f; }
+
+.stock-badge-btn:hover { opacity: 0.8; }
+
+.btn-delete { color: #d32f2f; background: none; border: none; cursor: pointer; font-size: 16px; }
+.btn-edit-action { color: #0288d1; background: none; border: none; cursor: pointer; font-size: 16px; margin-right: 8px; }
+
+.btn-delete-modal {
+    background: #d32f2f;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+.btn-delete-modal:hover { background: #b71c1c; }
+
+/* Responsividade */
+.overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+}
+
+@media (max-width: 992px) {
+    .sidebar {
+        margin-left: -260px;
+        position: fixed;
+        height: 100%;
+    }
+    
+    .sidebar.collapsed {
+        margin-left: 0;
+    }
+
+    .overlay.active {
+        display: block;
+    }
+}
+
+@media (min-width: 993px) {
+    .sidebar.collapsed {
+        width: 80px;
+        min-width: 80px;
+    }
+    .sidebar.collapsed .menu-title, .sidebar.collapsed .menu-header, .sidebar.collapsed .logo-text {
+        display: none;
+    }
+}

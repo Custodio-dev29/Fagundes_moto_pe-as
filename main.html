@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel - Fagundes Moto Peças</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/main.js" type="module"></script>
+</head>
+<body>
+    <div class="layout has-sidebar">
+        <aside id="sidebar" class="sidebar break-point-lg shadow">
+            <div class="sidebar-layout">
+                <div class="sidebar-header">
+                    <span class="logo-text">Fagundes Moto Peças</span>
+                </div>
+                <div class="sidebar-content">
+                    <nav class="menu">
+                        <ul>
+                            <li class="menu-header"><span>GERENCIAMENTO</span></li>
+                            <li class="menu-item active">
+                                <a href="#"><span class="menu-icon"><i class="fa-solid fa-gauge"></i></span><span class="menu-title">Dashboard</span></a>
+                            </li>
+                            <li class="menu-item" id="menu-register-part">
+                                <a href="#"><span class="menu-icon"><i class="fa-solid fa-plus-circle"></i></span><span class="menu-title">Cadastro de Peças</span></a>
+                            </li>
+                            <li class="menu-item" id="menu-inventory">
+                                <a href="#"><span class="menu-icon"><i class="fa-solid fa-boxes-stacked"></i></span><span class="menu-title">Estoque de Peças</span></a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="#"><span class="menu-icon"><i class="fa-solid fa-cart-shopping"></i></span><span class="menu-title">Vendas</span></a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="#"><span class="menu-icon"><i class="fa-solid fa-users"></i></span><span class="menu-title">Clientes</span></a>
+                            </li>
+                            <li class="menu-header"><span>SISTEMA</span></li>
+                            <li class="menu-item">
+                                <a href="#"><span class="menu-icon"><i class="fa-solid fa-gear"></i></span><span class="menu-title">Configurações</span></a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="index.html"><span class="menu-icon"><i class="fa-solid fa-right-from-bracket"></i></span><span class="menu-title">Sair</span></a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </aside>
+        <div id="overlay" class="overlay"></div>
+        <main class="main-content">
+            <header class="content-header">
+                <button id="btn-toggle" class="btn-toggle">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <h2>Bem-vindo ao Sistema</h2>
+            </header>
+            <div class="content-body">
+                <p>Aqui você poderá gerenciar todo o estoque e vendas da Fagundes Moto Peças.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para Alteração de Estoque -->
+    <div id="stockModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-lock"></i> Confirmar Alteração</h3>
+                <p>Insira a nova quantidade e sua senha para confirmar.</p>
+            </div>
+            <form id="modalForm">
+                <input type="hidden" id="modalProdId">
+                <div class="form-group-inventory">
+                    <label>Nova Quantidade em Estoque</label>
+                    <input type="number" id="modalNewStock" required>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Senha de Confirmação</label>
+                    <input type="password" id="modalPassword" placeholder="Sua senha atual" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btnCancelModal" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-submit-inventory">Confirmar e Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Cadastro de Peças -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-plus-circle"></i> Cadastrar Nova Peça</h3>
+                <p>Preencha os dados do novo item.</p>
+            </div>
+            <form id="registerProductForm">
+                <div class="form-group-inventory">
+                    <label>Nº de Cadastro (Deixe vazio para automático)</label>
+                    <input type="text" id="regProdId" placeholder="Ex: 5001">
+                </div>
+                <div class="form-group-inventory">
+                    <label>Nome do Produto</label>
+                    <input type="text" id="regProdName" placeholder="Ex: Amortecedor Traseiro" required>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Valor de Venda (R$)</label>
+                    <input type="number" id="regProdPrice" placeholder="0.00" step="0.01" required>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Quantidade Inicial</label>
+                    <input type="number" id="regProdStock" placeholder="0" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btnCancelRegister" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-submit-inventory">Salvar no Estoque</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Edição e Exclusão de Peças -->
+    <div id="editProductModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-pen-to-square"></i> Editar Produto</h3>
+                <p>Altere os dados ou exclua o item. Confirmação por senha obrigatória.</p>
+            </div>
+            <form id="editProductForm">
+                <input type="hidden" id="editProdIdOriginal">
+                <div class="form-group-inventory">
+                    <label>Nº de Cadastro</label>
+                    <input type="text" id="editProdId" required>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Nome do Produto</label>
+                    <input type="text" id="editProdName" required>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Valor de Venda (R$)</label>
+                    <input type="number" id="editProdPrice" step="0.01" required>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Quantidade em Estoque</label>
+                    <input type="number" id="editProdStock" required>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Senha de Confirmação</label>
+                    <input type="password" id="editProdPassword" placeholder="Sua senha atual" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btnDeleteProduct" class="btn-delete-modal">Excluir Item</button>
+                    <button type="submit" class="btn-submit-inventory">Salvar Alterações</button>
+                    <button type="button" id="btnCancelEdit" class="btn-secondary">Voltar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
