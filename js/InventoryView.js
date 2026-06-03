@@ -45,7 +45,7 @@ export class InventoryView {
                                         <td>R$ ${purchasePrice.toFixed(2)}</td>
                                         <td>R$ ${price.toFixed(2)}</td>
                                         <td>${margin}%</td>
-                                        <td><button class="stock-badge-btn ${stock <= minStock ? 'low' : ''}" data-id="${p.id}" title="Clique para alterar">${stock}</button></td>
+                                        <td> ${stock <= minStock ? 'low' : ''}${stock}</td>
                                         <td>${minStock}</td>
                                         <td>
                                             <button class="btn-edit-action" data-id="${p.id}" title="Editar item">
@@ -75,11 +75,8 @@ export class InventoryView {
                             <tr>
                                 <th>Nº Cadastro</th>
                                 <th>Produto</th>
-                                <th>V. Compra</th>
                                 <th>Valor de Venda</th>
-                                <th>Margem (%)</th>
                                 <th>Qtd em Estoque</th>
-                                <th>E. Mín</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
@@ -95,11 +92,8 @@ export class InventoryView {
                                     <tr>
                                         <td><strong>${p.id}</strong></td>
                                         <td>${p.name}</td>
-                                        <td>R$ ${purchasePrice.toFixed(2)}</td>
                                         <td>R$ ${price.toFixed(2)}</td>
-                                        <td>${margin}%</td>
-                                        <td><button class="stock-badge-btn ${stock <= minStock ? 'low' : ''}" data-id="${p.id}" title="Clique para alterar">${stock}</button></td>
-                                        <td>${minStock}</td>
+                                        <td>${stock <= minStock ? 'low' : ''}${stock}</td>
                                         <td>
                                             <button class="btn-edit-action" data-id="${p.id}" title="Editar item">
                                                 <i class="fa-solid fa-pen-to-square"></i>
