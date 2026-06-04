@@ -28,7 +28,7 @@
                             <li class="menu-item" id="menu-inventory">
                                 <a href="#"><span class="menu-icon"><i class="fa-solid fa-boxes-stacked"></i></span><span class="menu-title">Estoque de Peças</span></a>
                             </li>
-                            <li class="menu-item">
+                            <li class="menu-item" id="menu-sales">
                                 <a href="#"><span class="menu-icon"><i class="fa-solid fa-cart-shopping"></i></span><span class="menu-title">Vendas</span></a>
                             </li>
                             <li class="menu-item" id="menu-customers">
@@ -228,6 +228,103 @@
                     <button type="button" id="btnDeleteCustomer" class="btn-delete-modal">Excluir Cliente</button>
                     <button type="submit" class="btn-submit-inventory">Salvar Alterações</button>
                     <button type="button" id="btnCancelEditCustomer" class="btn-secondary">Voltar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Cadastro de Vendas -->
+    <div id="saleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-cart-plus"></i> Registrar Nova Venda</h3>
+                <p>Selecione o cliente e a peça para finalizar a venda.</p>
+            </div>
+            <form id="sale-form">
+                <div class="form-group-inventory">
+                    <label>Cliente</label>
+                    <select id="saleCustomer" required>
+                        <option value="">Selecione um cliente...</option>
+                    </select>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Peça / Produto</label>
+                    <select id="salePart" required>
+                        <option value="">Selecione uma peça...</option>
+                    </select>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Quantidade</label>
+                    <input type="number" id="saleQty" value="1" min="1" required>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Forma de Pagamento</label>
+                    <select id="salePaymentMethod" required>
+                        <option value="">Selecione...</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="Cartão de Crédito">Cartão de Crédito</option>
+                        <option value="Cartão de Débito">Cartão de Débito</option>
+                        <option value="PIX">PIX</option>
+                    </select>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Valor Unitário (R$)</label>
+                    <input type="number" id="saleUnitPrice" readonly step="0.01">
+                </div>
+                <div class="form-group-inventory">
+                    <label>Total da Venda</label>
+                    <input type="text" id="saleTotal" readonly value="R$ 0,00" style="font-weight: bold; color: var(--sidebar-bg);">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btnCancelSale" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-submit-inventory">Finalizar Venda</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Edição e Exclusão de Vendas -->
+    <div id="editSaleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-cart-arrow-down"></i> Editar Venda</h3>
+                <p>Altere os dados ou cancele a venda. Requer senha de confirmação.</p>
+            </div>
+            <form id="editSaleForm">
+                <input type="hidden" id="editSaleId">
+                <div class="form-group-inventory">
+                    <label>Cliente</label>
+                    <select id="editSaleCustomer" required></select>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Peça / Produto</label>
+                    <select id="editSalePart" required></select>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Quantidade</label>
+                    <input type="number" id="editSaleQty" min="1" required>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Forma de Pagamento</label>
+                    <select id="editSalePaymentMethod" required>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="Cartão de Crédito">Cartão de Crédito</option>
+                        <option value="Cartão de Débito">Cartão de Débito</option>
+                        <option value="PIX">PIX</option>
+                    </select>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Total da Venda</label>
+                    <input type="text" id="editSaleTotal" readonly style="font-weight: bold;">
+                </div>
+                <div class="form-group-inventory">
+                    <label>Senha de Confirmação</label>
+                    <input type="password" id="editSalePassword" placeholder="Sua senha atual" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btnDeleteSale" class="btn-delete-modal">Excluir Venda</button>
+                    <button type="submit" class="btn-submit-inventory">Salvar Alterações</button>
+                    <button type="button" id="btnCancelEditSale" class="btn-secondary">Voltar</button>
                 </div>
             </form>
         </div>

@@ -5,6 +5,9 @@ import { AuthModel } from './AuthModel.js';
 import { CustomerModel } from './CustomerModel.js';
 import { CustomerView } from './CustomerView.js';
 import { CustomerController } from './CustomerController.js';
+import { SaleModel } from './SaleModel.js';
+import { SaleView } from './SaleView.js';
+import { SaleController } from './SaleController.js';
 
 const btnToggle = document.getElementById('btn-toggle');
 const sidebar = document.getElementById('sidebar');
@@ -12,6 +15,7 @@ const overlay = document.getElementById('overlay');
 const menuInventory = document.getElementById('menu-inventory');
 const menuRegisterPart = document.getElementById('menu-register-part');
 const menuCustomers = document.getElementById('menu-customers');
+const menuSales = document.getElementById('menu-sales');
 
 const toggleSidebar = () => {
     sidebar.classList.toggle('collapsed');
@@ -21,17 +25,30 @@ const toggleSidebar = () => {
 btnToggle.addEventListener('click', toggleSidebar);
 overlay.addEventListener('click', toggleSidebar);
 
+// Instâncias de modelos para compartilhamento de dados
+const inventoryModel = new InventoryModel();
+const customerModel = new CustomerModel();
+const authModel = new AuthModel();
+
 // Controlador único para estoque
 const inventoryController = new InventoryController(
-    new InventoryModel(), 
+    inventoryModel, 
     new InventoryView(),
-    new AuthModel()
+    authModel
 );
 
 const customerController = new CustomerController(
-    new CustomerModel(),
+    customerModel,
     new CustomerView(),
-    new AuthModel()
+    authModel
+);
+
+const saleController = new SaleController(
+    new SaleModel(),
+    new SaleView(),
+    customerModel,
+    inventoryModel,
+    authModel
 );
 
 const handleMenuClick = (menuId, callback) => {
@@ -59,6 +76,10 @@ if (menuCustomers) {
     handleMenuClick('menu-customers', () => customerController.showCustomers());
 }
 
+if (menuSales) {
+    handleMenuClick('menu-sales', () => saleController.showSales());
+}
+
 // Delegação de evento para o botão Novo Item que agora é dinâmico na View
 document.addEventListener('click', (e) => {
     if (e.target.closest('#btn-open-register-modal')) {
@@ -66,6 +87,11 @@ document.addEventListener('click', (e) => {
     }
     if (e.target.closest('#btn-open-customer-modal')) {
         customerController.view.showRegisterModal();
+    }
+    if (e.target.closest('#btn-open-sale-modal')) {
+        const customers = customerModel.getAll();
+        const products = inventoryModel.getAllProducts();
+        saleController.view.showRegisterModal(customers, products);
     }
 });
 
