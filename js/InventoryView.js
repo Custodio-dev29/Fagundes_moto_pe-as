@@ -23,9 +23,9 @@ export class InventoryView {
                                 <th>Nº Cadastro</th>
                                 <th>Produto</th>
                                 <th>V. Compra</th>
-                                <th>Valor de Venda</th>
+                                <th>Valor</th>
                                 <th>Margem (%)</th>
-                                <th>Qtd em Estoque</th>
+                                <th>Estoque</th>
                                 <th>E. Mín</th>
                                 <th>Ações</th>
                             </tr>
@@ -75,8 +75,8 @@ export class InventoryView {
                             <tr>
                                 <th>Nº Cadastro</th>
                                 <th>Produto</th>
-                                <th>Valor de Venda</th>
-                                <th>Qtd em Estoque</th>
+                                <th>Valor</th>
+                                <th>Estoque</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
@@ -93,7 +93,7 @@ export class InventoryView {
                                         <td><strong>${p.id}</strong></td>
                                         <td>${p.name}</td>
                                         <td>R$ ${price.toFixed(2)}</td>
-                                        <td style="color: ${stock <= minStock ? 'red' : 'inherit'}; font-weight: ${stock <= minStock ? 'bold' : 'normal'};">${stock}</td>
+                                        <td style="color: ${stock < minStock ? 'white' : 'inherit'}; background-color: ${stock < minStock ? '#dd4c62' : 'inherit'};">${stock}</td>
                                         <td>
                                             <button class="btn-edit-action" data-id="${p.id}" title="Editar item">
                                                 <i class="fa-solid fa-pen-to-square"></i>
