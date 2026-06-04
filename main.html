@@ -31,7 +31,7 @@
                             <li class="menu-item">
                                 <a href="#"><span class="menu-icon"><i class="fa-solid fa-cart-shopping"></i></span><span class="menu-title">Vendas</span></a>
                             </li>
-                            <li class="menu-item">
+                            <li class="menu-item" id="menu-customers">
                                 <a href="#"><span class="menu-icon"><i class="fa-solid fa-users"></i></span><span class="menu-title">Clientes</span></a>
                             </li>
                             <li class="menu-header"><span>SISTEMA</span></li>
@@ -174,6 +174,60 @@
                     <button type="button" id="btnDeleteProduct" class="btn-delete-modal">Excluir Item</button>
                     <button type="submit" class="btn-submit-inventory">Salvar Alterações</button>
                     <button type="button" id="btnCancelEdit" class="btn-secondary">Voltar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Cadastro de Clientes -->
+    <div id="customerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-user-plus"></i> Cadastrar Novo Cliente</h3>
+                <p>Preencha os dados do cliente.</p>
+            </div>
+            <form id="customer-form">
+                <div class="form-group-inventory">
+                    <label>Nome Completo</label>
+                    <input type="text" id="custName" placeholder="Ex: João Silva" required>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Telefone / WhatsApp</label>
+                    <input type="text" id="custPhone" placeholder="Ex: (11) 99999-9999" maxlength="15" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btnCancelCustomer" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-submit-inventory">Salvar Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Edição e Exclusão de Clientes -->
+    <div id="editCustomerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-user-pen"></i> Editar Cliente</h3>
+                <p>Altere os dados ou exclua o cliente. Confirmação por senha obrigatória.</p>
+            </div>
+            <form id="editCustomerForm">
+                <input type="hidden" id="editCustId">
+                <div class="form-group-inventory">
+                    <label>Nome Completo</label>
+                    <input type="text" id="editCustName" required>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Telefone / WhatsApp</label>
+                    <input type="text" id="editCustPhone" maxlength="15" required>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Senha de Confirmação</label>
+                    <input type="password" id="editCustPassword" placeholder="Sua senha atual" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btnDeleteCustomer" class="btn-delete-modal">Excluir Cliente</button>
+                    <button type="submit" class="btn-submit-inventory">Salvar Alterações</button>
+                    <button type="button" id="btnCancelEditCustomer" class="btn-secondary">Voltar</button>
                 </div>
             </form>
         </div>
