@@ -9,22 +9,23 @@ export class CustomerController {
         this.view.bindConfirmEdit(this.handleConfirmEdit.bind(this), this.handleConfirmDelete.bind(this));
     }
 
-    showCustomers() {
-        const customers = this.model.getAll();
+    async showCustomers() {
+        const customers = await this.model.getAll();
         this.view.render(customers);
         
         // Re-vincula eventos de delegação da tabela
         this.view.bindEditAction((id) => this.handleOpenEditModal(id));
     }
 
-    handleAddCustomer(data) {
-        this.model.add(data);
+    async handleAddCustomer(data) {
+        await this.model.add(data);
         this.view.closeRegisterModal();
         this.showCustomers();
     }
 
-    handleOpenEditModal(id) {
-        const customer = this.model.getAll().find(c => c.id === id);
+    async handleOpenEditModal(id) {
+        const customers = await this.model.getAll();
+        const customer = customers.find(c => String(c.id) === String(id));
         if (customer) this.view.showEditModal(customer);
     }
 
@@ -33,7 +34,7 @@ export class CustomerController {
         const isValid = await this.authModel.authenticate(userEmail, data.password);
 
         if (isValid) {
-            const result = this.model.update(data.id, {
+            const result = await this.model.update(data.id, {
                 name: data.name,
                 phone: data.phone
             });
@@ -55,7 +56,7 @@ export class CustomerController {
         const isValid = await this.authModel.authenticate(userEmail, data.password);
 
         if (isValid) {
-            this.model.delete(data.id);
+            await this.model.delete(data.id);
             this.view.closeEditModal();
             this.showCustomers();
         } else {

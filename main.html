@@ -35,7 +35,7 @@
                                 <a href="#"><span class="menu-icon"><i class="fa-solid fa-users"></i></span><span class="menu-title">Clientes</span></a>
                             </li>
                             <li class="menu-header"><span>SISTEMA</span></li>
-                            <li class="menu-item">
+                            <li class="menu-item" id="menu-settings">
                                 <a href="#"><span class="menu-icon"><i class="fa-solid fa-gear"></i></span><span class="menu-title">Configurações</span></a>
                             </li>
                             <li class="menu-item">
@@ -94,8 +94,8 @@
             </div>
             <form id="registerProductForm">
                 <div class="form-group-inventory">
-                    <label>Nº de Cadastro (Deixe vazio para automático)</label>
-                    <input type="text" id="regProdId" placeholder="Ex: 5001">
+                    <label>Código do Produto (Obrigatório)</label>
+                    <input type="number" id="regProdId" placeholder="Ex: 5001" required>
                 </div>
                 <div class="form-group-inventory">
                     <label>Nome do Produto</label>
@@ -139,7 +139,7 @@
             <form id="editProductForm">
                 <input type="hidden" id="editProdIdOriginal">
                 <div class="form-group-inventory">
-                    <label>Nº de Cadastro</label>
+                    <label>Código do Produto</label>
                     <input type="text" id="editProdId" required>
                 </div>
                 <div class="form-group-inventory">

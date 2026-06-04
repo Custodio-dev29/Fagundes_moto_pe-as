@@ -9,7 +9,7 @@ export class InventoryView {
                 <div class="inventory-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <h2><i class="fa-solid fa-plus-circle"></i> Cadastro de Peças</h2>
-                        <p>Gerencie as peças recém-adicionadas ao sistema.</p>
+                        <p>Cadastre os produtos informando o código e detalhes abaixo.</p>
                     </div>
                     <button id="btn-open-register-modal" class="btn-primary-action" style="margin-left: 0;">
                         <i class="fa-solid fa-plus"></i> Novo Item
@@ -20,7 +20,7 @@ export class InventoryView {
                     <table class="inventory-table">
                         <thead>
                             <tr>
-                                <th>Nº Cadastro</th>
+                                <th>Código</th>
                                 <th>Produto</th>
                                 <th>V. Compra</th>
                                 <th>Valor</th>
@@ -73,7 +73,7 @@ export class InventoryView {
                     <table class="inventory-table">
                         <thead>
                             <tr>
-                                <th>Nº Cadastro</th>
+                                <th>Código</th>
                                 <th>Produto</th>
                                 <th>Valor</th>
                                 <th>Estoque</th>
@@ -81,7 +81,7 @@ export class InventoryView {
                             </tr>
                         </thead>
                         <tbody id="inventoryTableBody">
-                            ${products.length === 0 ? '<tr><td colspan="8" style="text-align:center">Nenhum produto cadastrado.</td></tr>' : 
+                            ${products.length === 0 ? '<tr><td colspan="5" style="text-align:center">Nenhum produto cadastrado.</td></tr>' : 
                             products.map(p => {
                                 const purchasePrice = p.purchasePrice || 0;
                                 const price = p.price || 0;
@@ -207,8 +207,9 @@ export class InventoryView {
 
     showEditModal(product) {
         const modal = document.getElementById('editProductModal');
-        document.getElementById('editProdIdOriginal').value = product.id;
-        document.getElementById('editProdId').value = product.id;
+        const prodId = product.id; // Garante captura do ID do banco
+        document.getElementById('editProdIdOriginal').value = prodId;
+        document.getElementById('editProdId').value = prodId;
         document.getElementById('editProdName').value = product.name;
         const purchasePrice = product.purchasePrice || 0;
         const price = product.price || 0;

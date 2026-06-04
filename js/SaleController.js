@@ -6,38 +6,32 @@ export class SaleController {
         this.inventoryModel = inventoryModel;
         this.authModel = authModel;
 
-        this.view.bindAddSale(this.handleAddSale.bind(this), this.inventoryModel.getAllProducts());
-        this.view.bindConfirmEdit(this.handleConfirmEdit.bind(this), this.handleConfirmDelete.bind(this), this.inventoryModel.getAllProducts());
+        // Eventos vinculados via delegação ou chamadas explícitas no main.js
     }
 
-    showSales() {
-        const sales = this.model.getAll();
-        const customers = this.customerModel.getAll();
-        const products = this.inventoryModel.getAllProducts();
+    async showSales() {
+        const sales = await this.model.getAll();
+        const customers = await this.customerModel.getAll();
+        const products = await this.inventoryModel.getAllProducts();
         
         this.view.render(sales, customers, products);
         this.view.bindEditAction((id) => this.handleOpenEditModal(id));
+        this.view.bindAddSale(this.handleAddSale.bind(this), products);
+        this.view.bindConfirmEdit(this.handleConfirmEdit.bind(this), this.handleConfirmDelete.bind(this), products);
     }
 
-    handleAddSale(data) {
-        const product = this.inventoryModel.getAllProducts().find(p => p.id === data.productId);
-        const customer = this.customerModel.getAll().find(c => c.id === data.customerId);
+    async handleAddSale(data) {
+        const products = await this.inventoryModel.getAllProducts();
+        const product = products.find(p => String(p.id) === String(data.productId));
         
         if (!product || product.stock < data.quantity) {
             alert('Erro: Quantidade insuficiente em estoque!');
             return;
         }
 
-        // Captura os nomes atuais para o histórico permanente
-        data.customerName = customer ? customer.name : 'Cliente Desconhecido';
-        data.productName = product.name;
-
-        const result = this.model.add(data);
+        const result = await this.model.add(data);
         if (result.success) {
-            // Baixa automática do estoque
-            const newStock = product.stock - data.quantity;
-            this.inventoryModel.updateStock(data.productId, newStock);
-
+            await this.inventoryModel.updateStock(data.productId, product.stock - data.quantity);
             this.view.closeRegisterModal();
             this.showSales();
         } else {
@@ -45,10 +39,13 @@ export class SaleController {
         }
     }
 
-    handleOpenEditModal(id) {
-        const sale = this.model.getAll().find(s => s.id === id);
+    async handleOpenEditModal(id) {
+        const sales = await this.model.getAll();
+        const sale = sales.find(s => String(s.id) === String(id));
         if (sale) {
-            this.view.showEditModal(sale, this.customerModel.getAll(), this.inventoryModel.getAllProducts());
+            const customers = await this.customerModel.getAll();
+            const products = await this.inventoryModel.getAllProducts();
+            this.view.showEditModal(sale, customers, products);
         }
     }
 
@@ -57,27 +54,33 @@ export class SaleController {
         const isValid = await this.authModel.authenticate(userEmail, data.password);
         if (!isValid) return alert('Senha incorreta!');
 
-        const oldSale = this.model.getAll().find(s => s.id === data.id);
-        const product = this.inventoryModel.getAllProducts().find(p => p.id === data.productId);
-        const customer = this.customerModel.getAll().find(c => c.id === data.customerId);
+        const sales = await this.model.getAll();
+        const products = await this.inventoryModel.getAllProducts();
+        const customers = await this.customerModel.getAll();
+
+        const oldSale = sales.find(s => String(s.id) === String(data.id));
+        const product = products.find(p => String(p.id) === String(data.productId));
+        const customer = customers.find(c => String(c.id) === String(data.customerId));
+
+        if (!oldSale || !product) return alert('Erro ao localizar dados da venda ou produto.');
 
         // Reconciliação de estoque
-        if (oldSale.productId === data.productId) {
-            const diff = oldSale.quantity - data.quantity;
+        if (String(oldSale.productId) === String(data.productId)) {
+            const diff = (oldSale.quantity || oldSale.qty) - data.quantity;
             if (product.stock + diff < 0) return alert('Estoque insuficiente para esta alteração!');
-            this.inventoryModel.updateStock(product.id, product.stock + diff);
+            await this.inventoryModel.updateStock(product.id, product.stock + diff);
         } else {
             // Se mudou o produto: devolve o antigo, tira do novo
-            const oldProduct = this.inventoryModel.getAllProducts().find(p => p.id === oldSale.productId);
+            const oldProduct = products.find(p => String(p.id) === String(oldSale.productId));
             if (product.stock < data.quantity) return alert('Estoque insuficiente no novo produto!');
-            if (oldProduct) this.inventoryModel.updateStock(oldProduct.id, oldProduct.stock + oldSale.quantity);
-            this.inventoryModel.updateStock(product.id, product.stock - data.quantity);
+            if (oldProduct) await this.inventoryModel.updateStock(oldProduct.id, oldProduct.stock + oldSale.quantity);
+            await this.inventoryModel.updateStock(product.id, product.stock - data.quantity);
         }
 
         data.customerName = customer ? customer.name : 'Cliente Desconhecido';
-        data.productName = product ? product.name : 'Produto Desconhecido';
+        data.productName = product ? `#${product.id} - ${product.name}` : 'Produto Desconhecido';
 
-        this.model.update(data.id, data);
+        await this.model.update(data.id, data);
         this.view.closeEditModal();
         this.showSales();
     }
@@ -89,13 +92,15 @@ export class SaleController {
         const isValid = await this.authModel.authenticate(userEmail, data.password);
         if (!isValid) return alert('Senha incorreta!');
 
-        const sale = this.model.getAll().find(s => s.id === data.id);
+        const sales = await this.model.getAll();
+        const sale = sales.find(s => String(s.id) === String(data.id));
         if (sale) {
-            const product = this.inventoryModel.getAllProducts().find(p => p.id === sale.productId);
+            const products = await this.inventoryModel.getAllProducts();
+            const product = products.find(p => String(p.id) === String(sale.productId));
             if (product) {
-                this.inventoryModel.updateStock(product.id, product.stock + sale.quantity);
+                await this.inventoryModel.updateStock(product.id, product.stock + sale.quantity);
             }
-            this.model.delete(data.id);
+            await this.model.delete(data.id);
             this.view.closeEditModal();
             this.showSales();
         }

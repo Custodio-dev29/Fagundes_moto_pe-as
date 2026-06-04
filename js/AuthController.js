@@ -44,7 +44,7 @@ export class AuthController {
                     this.view.setLoading(false);
                 }
             } else {
-                const result = this.model.register(data.email, data.password);
+                const result = await this.model.register(data.email, data.password);
                 this.view.setLoading(false);
 
                 if (result.success) {

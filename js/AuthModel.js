@@ -1,10 +1,6 @@
 export class AuthModel {
     constructor() {
-        // Esta chave funciona como o seu arquivo "login.json" dentro do navegador
-        this.storageKey = 'fagundes_users_db';
-        if (!localStorage.getItem(this.storageKey)) {
-            localStorage.setItem(this.storageKey, JSON.stringify([]));
-        }
+        this.apiUrl = '/api/auth';
     }
 
     validateEmail(email) {
@@ -16,45 +12,30 @@ export class AuthModel {
         return !!(password && password.length >= 8);
     }
 
-    getAllUsers() {
+    async register(email, password) {
         try {
-            const data = localStorage.getItem(this.storageKey);
-            return data ? JSON.parse(data) : [];
+            const response = await fetch(`${this.apiUrl}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            return await response.json();
         } catch (e) {
-            console.error("Erro ao ler banco de dados:", e);
-            return [];
+            return { success: false, message: "Erro de conexão com o servidor." };
         }
-    }
-
-    register(email, password) {
-        const users = this.getAllUsers();
-        const normalizedEmail = email.toLowerCase().trim();
-        
-        if (users.find(u => u.email === normalizedEmail)) {
-            return { success: false, message: 'Este e-mail já está cadastrado.' };
-        }
-        
-        const newUser = { 
-            email: normalizedEmail, 
-            password: password,
-            createdAt: new Date().toISOString() 
-        };
-        
-        users.push(newUser);
-        localStorage.setItem(this.storageKey, JSON.stringify(users));
-        
-        // Log para você ver o "JSON" no console do navegador (F12)
-        console.log("Usuário cadastrado com sucesso! Base de dados atual:", users);
-        return { success: true };
     }
 
     async authenticate(email, password) {
-        const users = this.getAllUsers();
-        const normalizedEmail = email.toLowerCase().trim();
-        const user = users.find(u => u.email === normalizedEmail && u.password === password);
-
-        return new Promise((resolve) => {
-            setTimeout(() => resolve(!!user), 800);
-        });
+        try {
+            const response = await fetch(`${this.apiUrl}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+            return data.success;
+        } catch (e) {
+            return false;
+        }
     }
 }

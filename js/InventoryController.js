@@ -8,24 +8,24 @@ export class InventoryController {
         this.view.bindConfirmEdit(this.handleConfirmEdit.bind(this), this.handleConfirmDelete.bind(this));
     }
 
-    showRegistration() {
-        const products = this.model.getAllProducts();
+    async showRegistration() {
+        const products = await this.model.getAllProducts();
         this.view.renderForm(products);
         this.view.bindUpdateStock((id, val) => this.view.showModal(id, val));
         this.view.bindEditAction((id) => this.handleOpenEditModal(id));
         this.currentView = 'registration';
     }
 
-    showInventory() {
-        const products = this.model.getAllProducts();
+    async showInventory() {
+        const products = await this.model.getAllProducts();
         this.view.renderTable(products);
         this.view.bindUpdateStock((id, val) => this.view.showModal(id, val));
         this.view.bindEditAction((id) => this.handleOpenEditModal(id));
         this.currentView = 'inventory';
     }
 
-    handleAddProduct(data) {
-        const result = this.model.addProduct(data);
+    async handleAddProduct(data) {
+        const result = await this.model.addProduct(data);
         
         if (result.success) {
             this.view.closeRegisterModal();
@@ -42,7 +42,7 @@ export class InventoryController {
         const isValid = await this.authModel.authenticate(userEmail, data.password);
 
         if (isValid) {
-            const result = this.model.updateStock(data.id, data.newStock);
+            const result = await this.model.updateStock(data.id, data.newStock);
             if (result.success) {
                 this.view.closeModal();
                 if (this.currentView === 'registration') this.showRegistration();
@@ -55,9 +55,9 @@ export class InventoryController {
         }
     }
 
-    handleOpenEditModal(id) {
-        const products = this.model.getAllProducts();
-        const product = products.find(p => p.id === id);
+    async handleOpenEditModal(id) {
+        const products = await this.model.getAllProducts();
+        const product = products.find(p => String(p.id) === String(id));
         if (product) this.view.showEditModal(product);
     }
 
@@ -66,7 +66,7 @@ export class InventoryController {
         const isValid = await this.authModel.authenticate(userEmail, data.password);
 
         if (isValid) {
-            const result = this.model.updateProduct(data.originalId, data);
+            const result = await this.model.updateProduct(data.originalId, data);
             if (result.success) {
                 this.view.closeEditModal();
                 this.refreshCurrentView();
@@ -85,7 +85,7 @@ export class InventoryController {
         const isValid = await this.authModel.authenticate(userEmail, data.password);
 
         if (isValid) {
-            this.model.deleteProduct(data.id);
+            await this.model.deleteProduct(data.id);
             this.view.closeEditModal();
             this.refreshCurrentView();
         } else {

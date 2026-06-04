@@ -191,9 +191,21 @@ body {
 }
 
 .inventory-table th, .inventory-table td {
-    padding: 15px;
+    padding: 5px;
     text-align: center;
     border-bottom: 1px solid #eee;
+}
+
+.inventory-table tbody tr:nth-child(odd) {
+    background-color: #f9f9f9; /* Linha um pouco mais escura que o branco */
+}
+
+.inventory-table tbody tr:nth-child(even) {
+    background-color: #d3cece; /* Linha um pouco mais escura que a anterior */
+}
+
+.inventory-table tbody tr:hover {
+    background-color: #bbd4be; /* Destaque ao passar o mouse */
 }
 
 .stock-badge, .stock-badge-btn {

@@ -1,57 +1,44 @@
 export class CustomerModel {
     constructor() {
-        this.storageKey = 'fagundes_customers_db';
-        if (!localStorage.getItem(this.storageKey)) {
-            localStorage.setItem(this.storageKey, JSON.stringify([]));
-        }
+        this.apiUrl = '/api/customers';
     }
 
-    getAll() {
+    async getAll() {
         try {
-            const data = localStorage.getItem(this.storageKey);
-            return data ? JSON.parse(data) : [];
+            const response = await fetch(this.apiUrl);
+            return await response.json();
         } catch (e) {
             console.error("Erro ao ler clientes:", e);
             return [];
         }
     }
 
-    add(customer) {
-        const customers = this.getAll();
-        
-        const newCustomer = {
-            id: Date.now().toString(),
-            name: customer.name.trim(),
-            phone: customer.phone.trim(),
-            createdAt: new Date().toISOString()
-        };
-        
-        customers.push(newCustomer);
-        localStorage.setItem(this.storageKey, JSON.stringify(customers));
-        return { success: true, customer: newCustomer };
+    async add(customer) {
+        const response = await fetch(this.apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: customer.name.trim(),
+                phone: customer.phone.trim()
+            })
+        });
+        return await response.json();
     }
 
-    update(id, data) {
-        const customers = this.getAll();
-        const index = customers.findIndex(c => c.id === id);
-        
-        if (index !== -1) {
-            customers[index] = {
-                ...customers[index],
+    async update(id, data) {
+        const response = await fetch(`${this.apiUrl}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
                 name: data.name.trim(),
-                phone: data.phone.trim(),
-                updatedAt: new Date().toISOString()
-            };
-            localStorage.setItem(this.storageKey, JSON.stringify(customers));
-            return { success: true };
-        }
-        return { success: false, message: 'Cliente não encontrado.' };
+                phone: data.phone.trim()
+            })
+        });
+        return await response.json();
     }
 
-    delete(id) {
-        const customers = this.getAll();
-        const filtered = customers.filter(c => c.id !== id);
-        localStorage.setItem(this.storageKey, JSON.stringify(filtered));
-        return { success: true };
+    async delete(id) {
+        const response = await fetch(`${this.apiUrl}/${id}`, { method: 'DELETE' });
+        return await response.json();
     }
 }

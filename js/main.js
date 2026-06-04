@@ -8,6 +8,18 @@ import { CustomerController } from './CustomerController.js';
 import { SaleModel } from './SaleModel.js';
 import { SaleView } from './SaleView.js';
 import { SaleController } from './SaleController.js';
+import { ConfigModel } from './ConfigModel.js';
+import { ConfigView } from './ConfigView.js';
+import { ConfigController } from './ConfigController.js';
+
+// Remove Service Workers antigos que podem estar travando o cache/listas
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) {
+            registration.unregister();
+        }
+    });
+}
 
 const btnToggle = document.getElementById('btn-toggle');
 const sidebar = document.getElementById('sidebar');
@@ -16,6 +28,7 @@ const menuInventory = document.getElementById('menu-inventory');
 const menuRegisterPart = document.getElementById('menu-register-part');
 const menuCustomers = document.getElementById('menu-customers');
 const menuSales = document.getElementById('menu-sales');
+const menuSettings = document.getElementById('menu-settings');
 
 const toggleSidebar = () => {
     sidebar.classList.toggle('collapsed');
@@ -51,6 +64,12 @@ const saleController = new SaleController(
     authModel
 );
 
+const configController = new ConfigController(
+    new ConfigModel(),
+    new ConfigView(),
+    authModel
+);
+
 const handleMenuClick = (menuId, callback) => {
     const element = document.getElementById(menuId);
     if (element) {
@@ -80,8 +99,12 @@ if (menuSales) {
     handleMenuClick('menu-sales', () => saleController.showSales());
 }
 
+if (menuSettings) {
+    handleMenuClick('menu-settings', () => configController.showSettings());
+}
+
 // Delegação de evento para o botão Novo Item que agora é dinâmico na View
-document.addEventListener('click', (e) => {
+document.addEventListener('click', async (e) => {
     if (e.target.closest('#btn-open-register-modal')) {
         inventoryController.view.showRegisterModal();
     }
@@ -89,8 +112,8 @@ document.addEventListener('click', (e) => {
         customerController.view.showRegisterModal();
     }
     if (e.target.closest('#btn-open-sale-modal')) {
-        const customers = customerModel.getAll();
-        const products = inventoryModel.getAllProducts();
+        const customers = await customerModel.getAll();
+        const products = await inventoryModel.getAllProducts();
         saleController.view.showRegisterModal(customers, products);
     }
 });
@@ -98,3 +121,6 @@ document.addEventListener('click', (e) => {
 window.addEventListener('resize', () => {
     if (window.innerWidth > 992) overlay.classList.remove('active');
 });
+
+// Carga inicial: Mostra o estoque automaticamente ao abrir o sistema
+inventoryController.showInventory();

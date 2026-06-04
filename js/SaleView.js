@@ -22,6 +22,7 @@ export class SaleView {
                         <thead>
                             <tr>
                                 <th>Data</th>
+                                <th>Código</th>
                                 <th>Cliente</th>
                                 <th>Produto</th>
                                 <th>Qtd</th>
@@ -31,13 +32,14 @@ export class SaleView {
                             </tr>
                         </thead>
                         <tbody id="salesTableBody">
-                            ${sales.length > 0 ? sales.map(s => {
+                            ${sales.length > 0 ? [...sales].reverse().map(s => {
                                 // Prioriza os nomes salvos no histórico da venda para preservar dados de cadastros excluídos
-                                const customerName = s.customerName || (customers.find(c => c.id === s.customerId)?.name) || '<em>Excluído</em>';
-                                const productName = s.productName || (products.find(p => p.id === s.productId)?.name) || '<em>Excluído</em>';
+                                const customerName = s.customerName || (customers.find(c => String(c.id) === String(s.customerId))?.name) || '<em>Excluído</em>';
+                                const productName = s.productName || (products.find(p => String(p.id) === String(s.productId))?.name) || '<em>Excluído</em>';
                                 return `
                                     <tr>
                                         <td>${new Date(s.date).toLocaleDateString('pt-BR')}</td>
+                                        <td>${s.productId}</td>
                                         <td>${customerName}</td>
                                         <td>${productName}</td>
                                         <td>${s.quantity}</td>
@@ -50,7 +52,7 @@ export class SaleView {
                                         </td>
                                     </tr>
                                 `;
-                            }).reverse().join('') : '<tr><td colspan="7">Nenhuma venda registrada.</td></tr>'}
+                            }).join('') : '<tr><td colspan="8" style="text-align:center">Nenhuma venda registrada.</td></tr>'}
                         </tbody>
                     </table>
                 </div>
@@ -69,7 +71,7 @@ export class SaleView {
             customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 
         partSelect.innerHTML = '<option value="">Selecione uma peça...</option>' + 
-            products.map(p => `<option value="${p.id}">${p.name} (Estoque: ${p.stock})</option>`).join('');
+            products.map(p => `<option value="${p.id}">#${p.id} - ${p.name} (Estoque: ${p.stock})</option>`).join('');
 
         document.getElementById('sale-form').reset();
         document.getElementById('saleTotal').value = 'R$ 0,00';
@@ -88,7 +90,7 @@ export class SaleView {
         if (!modal) return;
 
         custSelect.innerHTML = customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-        partSelect.innerHTML = products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        partSelect.innerHTML = products.map(p => `<option value="${p.id}">#${p.id} - ${p.name}</option>`).join('');
 
         document.getElementById('editSaleId').value = sale.id;
         custSelect.value = sale.customerId;
@@ -100,7 +102,7 @@ export class SaleView {
 
         // Lógica de cálculo no edit
         const updateEditTotal = () => {
-            const product = products.find(p => p.id === partSelect.value);
+            const product = products.find(p => String(p.id) === String(partSelect.value));
             const qty = parseInt(document.getElementById('editSaleQty').value) || 0;
             const price = product ? product.price : 0;
             document.getElementById('editSaleTotal').value = `R$ ${(qty * price).toFixed(2)}`;
@@ -136,7 +138,7 @@ export class SaleView {
         };
 
         partSelect.onchange = (e) => {
-            const product = products.find(p => p.id === e.target.value);
+            const product = products.find(p => String(p.id) === String(e.target.value));
             unitPriceInput.value = product ? product.price : '';
             calculateTotal();
         };
@@ -180,7 +182,7 @@ export class SaleView {
         form.onsubmit = (e) => {
             e.preventDefault();
             const productId = document.getElementById('editSalePart').value;
-            const product = products.find(p => p.id === productId);
+            const product = products.find(p => String(p.id) === String(productId));
             const qty = parseInt(document.getElementById('editSaleQty').value);
             
             onUpdate({
