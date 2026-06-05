@@ -1,6 +1,6 @@
 @echo off
 :: Inicia o servidor Node.js em modo totalmente oculto
-powershell -WindowStyle Hidden -Command "Start-Process node -ArgumentList 'server.js' -WindowStyle Hidden"
+powershell -WindowStyle Hidden -Command "Start-Process node -ArgumentList 'js/server.js' -WindowStyle Hidden"
 
 :: Aguarda 2 segundos para o banco de dados inicializar
 timeout /t 2 /nobreak > nul
