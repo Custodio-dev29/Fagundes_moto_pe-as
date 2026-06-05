@@ -13,14 +13,14 @@ const app = express();
 const ROOT_DIR = path.resolve(__dirname, '..');
 let PORT = parseInt(process.env.PORT) || 3000;
 const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
-const DB_PATH = process.env.DB_PATH || path.join(ROOT_DIR, 'fagundes_moto_pecas.db');
-const BACKUP_DIR = process.env.BACKUP_DIR || path.join(ROOT_DIR, 'backups');
+const DB_PATH = path.isAbsolute(process.env.DB_PATH || '') ? process.env.DB_PATH : path.resolve(ROOT_DIR, process.env.DB_PATH || 'fagundes_moto_pecas.db');
+const BACKUP_DIR = path.isAbsolute(process.env.BACKUP_DIR || '') ? process.env.BACKUP_DIR : path.resolve(ROOT_DIR, process.env.BACKUP_DIR || 'backups');
 const SALT_ROUNDS = 10;
 const JWT_SECRET = process.env.JWT_SECRET || 'fagundes-secret-local-please-change';
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 const isProduction = process.env.NODE_ENV === 'production';
-const SSL_KEY_PATH = process.env.SSL_KEY_PATH;
-const SSL_CERT_PATH = process.env.SSL_CERT_PATH;
+const SSL_KEY_PATH = process.env.SSL_KEY_PATH ? path.resolve(ROOT_DIR, process.env.SSL_KEY_PATH) : null;
+const SSL_CERT_PATH = process.env.SSL_CERT_PATH ? path.resolve(ROOT_DIR, process.env.SSL_CERT_PATH) : null;
 
 if (JWT_SECRET === 'fagundes-secret-local-please-change') {
     console.warn('WARNING: JWT_SECRET is using the default development value. Set JWT_SECRET in .env before deploying to production.');
@@ -394,7 +394,7 @@ app.use((req, res, next) => {
 app.use(express.static(PUBLIC_DIR));
 
 // Fallback para SPA: Se a rota não for API e não for arquivo, manda para index ou main
-app.get('*', (req, res, next) => {
+app.get('(.*)', (req, res, next) => {
     if (req.url.startsWith('/api')) return next();
     res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
@@ -408,7 +408,7 @@ const startServer = (port, attempts = 0) => {
     let server;
 
     // Tenta carregar SSL se os caminhos estiverem no .env
-    if (SSL_KEY_PATH && SSL_CERT_PATH && fs.existsSync(SSL_KEY_PATH)) {
+    if (SSL_KEY_PATH && SSL_CERT_PATH && fs.existsSync(SSL_KEY_PATH) && fs.existsSync(SSL_CERT_PATH)) {
         try {
             const options = {
                 key: fs.readFileSync(SSL_KEY_PATH),

@@ -41,7 +41,7 @@ export class InventoryController {
         // Validação da senha antes de prosseguir
         const isValid = await this.authModel.authenticate(userEmail, data.password);
 
-        if (isValid) {
+        if (isValid && isValid.success) {
             const result = await this.model.updateStock(data.id, data.newStock);
             if (result.success) {
                 this.view.closeModal();
@@ -65,7 +65,7 @@ export class InventoryController {
         const userEmail = localStorage.getItem('currentUser');
         const isValid = await this.authModel.authenticate(userEmail, data.password);
 
-        if (isValid) {
+        if (isValid && isValid.success) {
             const result = await this.model.updateProduct(data.originalId, data);
             if (result.success) {
                 this.view.closeEditModal();
@@ -84,7 +84,7 @@ export class InventoryController {
         const userEmail = localStorage.getItem('currentUser');
         const isValid = await this.authModel.authenticate(userEmail, data.password);
 
-        if (isValid) {
+        if (isValid && isValid.success) {
             await this.model.deleteProduct(data.id);
             this.view.closeEditModal();
             this.refreshCurrentView();

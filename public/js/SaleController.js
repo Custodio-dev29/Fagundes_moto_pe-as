@@ -52,7 +52,7 @@ export class SaleController {
     async handleConfirmEdit(data) {
         const userEmail = localStorage.getItem('currentUser');
         const isValid = await this.authModel.authenticate(userEmail, data.password);
-        if (!isValid) return alert('Senha incorreta!');
+        if (!isValid || !isValid.success) return alert('Senha incorreta!');
 
         const sales = await this.model.getAll();
         const products = await this.inventoryModel.getAllProducts();
@@ -90,7 +90,7 @@ export class SaleController {
 
         const userEmail = localStorage.getItem('currentUser');
         const isValid = await this.authModel.authenticate(userEmail, data.password);
-        if (!isValid) return alert('Senha incorreta!');
+        if (!isValid || !isValid.success) return alert('Senha incorreta!');
 
         const sales = await this.model.getAll();
         const sale = sales.find(s => String(s.id) === String(data.id));

@@ -33,7 +33,7 @@ export class CustomerController {
         const userEmail = localStorage.getItem('currentUser');
         const isValid = await this.authModel.authenticate(userEmail, data.password);
 
-        if (isValid) {
+        if (isValid && isValid.success) {
             const result = await this.model.update(data.id, {
                 name: data.name,
                 phone: data.phone
@@ -55,7 +55,7 @@ export class CustomerController {
         const userEmail = localStorage.getItem('currentUser');
         const isValid = await this.authModel.authenticate(userEmail, data.password);
 
-        if (isValid) {
+        if (isValid && isValid.success) {
             await this.model.delete(data.id);
             this.view.closeEditModal();
             this.showCustomers();

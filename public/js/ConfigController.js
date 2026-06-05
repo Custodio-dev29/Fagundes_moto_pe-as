@@ -17,7 +17,7 @@ export class ConfigController {
         // Valida a senha antes de enviar as novas configurações para o servidor
         const isValid = await this.authModel.authenticate(userEmail, data.password);
 
-        if (isValid) {
+        if (isValid && isValid.success) {
             const { password, ...settings } = data; // Remove a senha dos dados de envio
             const result = await this.model.updateSettings(settings);
             if (result.success) {
