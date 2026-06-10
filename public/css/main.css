@@ -17,6 +17,7 @@ body {
 .layout {
     display: flex;
     height: 100vh;
+    overflow: hidden;
 }
 
 /* Sidebar Styles */
@@ -85,7 +86,8 @@ body {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    overflow-x: hidden;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .content-header {
@@ -93,6 +95,7 @@ body {
     background: #fff;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
@@ -105,13 +108,22 @@ body {
     color: #333;
 }
 
+#header-title-container h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #333;
+}
+
 .content-body {
     padding: 25px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto; /* Permite rolagem vertical no conteúdo principal */
 }
 
 /* Botão de Ação no Header */
 .btn-primary-action {
-    margin-left: auto;
     background-color: var(--sidebar-bg);
     color: white;
     border: none;
@@ -131,17 +143,56 @@ body {
 }
 
 /* Estilos para Estoque e Cadastro */
+.inventory-section {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
 .inventory-section h2 {
     margin-bottom: 5px;
     color: #333;
 }
 
-.inventory-header {
+.inventory-list {
+    flex: 1;
     background: white;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    margin-bottom: 20px;
+    overflow: auto;
+    max-width: 100%;
+    min-height: 0;
+}
+
+.search-container {
+    margin-bottom: 15px;
+    position: relative;
+    max-width: 400px;
+}
+
+.search-container i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 10px 10px 35px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus {
+    border-color: var(--sidebar-bg);
 }
 
 .product-form {
@@ -183,6 +234,7 @@ body {
 
 .inventory-table {
     width: 100%;
+    min-width: 850px;
     border-collapse: collapse;
     background: white;
     border-radius: 8px;
@@ -207,6 +259,7 @@ body {
 .inventory-table tbody tr:hover {
     background-color: #bbd4be; /* Destaque ao passar o mouse */
 }
+
 
 .stock-badge, .stock-badge-btn {
     background: #e1f5fe;
@@ -267,6 +320,29 @@ body {
 
 .stock-badge-btn:hover { opacity: 0.8; }
 
+/* PDV Layout Responsivo */
+.pdv-container {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 20px;
+    flex: 1;
+    min-height: 0;
+}
+
+.pdv-container > div {
+    max-height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 1200px) {
+    .pdv-container {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+    }
+}
+
 .btn-delete { color: #d32f2f; background: none; border: none; cursor: pointer; font-size: 16px; }
 .btn-edit-action { color: #0288d1; background: none; border: none; cursor: pointer; font-size: 16px; margin-right: 8px; }
 
@@ -293,13 +369,13 @@ body {
 
 @media (max-width: 992px) {
     .sidebar {
-        margin-left: -260px;
+        margin-left: 0;
         position: fixed;
         height: 100%;
     }
     
     .sidebar.collapsed {
-        margin-left: 0;
+        margin-left: -260px;
     }
 
     .overlay.active {
@@ -314,5 +390,52 @@ body {
     }
     .sidebar.collapsed .menu-title, .sidebar.collapsed .menu-header, .sidebar.collapsed .logo-text {
         display: none;
+
+/* Dashboard Layout */
+.dashboard-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.stats-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+    min-width: 250px;
+    border-left: 4px solid var(--sidebar-bg);
+}
+
+.stat-card .value {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.stat-card.warning { border-left-color: #d32f2f; }
+.stat-card i { font-size: 24px; color: #666; }
+.stat-card h3 { margin: 0; font-size: 12px; color: #888; text-transform: uppercase; }
+.stat-card .value { font-size: 18px; font-weight: bold; color: #333; }
+
+.dashboard-content-row {
+    display: flex;
+    gap: 20px;
+}
+.dashboard-box {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.dashboard-box.half-width { width: 50%; }
+@media (max-width: 1100px) { .dashboard-box.half-width { width: 100%; } }
     }
 }

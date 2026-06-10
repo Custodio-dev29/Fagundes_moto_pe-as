@@ -1,4 +1,7 @@
 @echo off
+:: Encerra instâncias anteriores do Node para evitar duplicidade
+taskkill /f /im node.exe >nul 2>&1
+
 :: Inicia o servidor Node.js em modo totalmente oculto
 powershell -WindowStyle Hidden -Command "Start-Process node -ArgumentList 'js/server.js' -WindowStyle Hidden"
 
@@ -6,5 +9,5 @@ powershell -WindowStyle Hidden -Command "Start-Process node -ArgumentList 'js/se
 timeout /t 2 /nobreak > nul
 
 :: Abre o navegador e fecha o terminal
-start http://localhost:3000
+start chrome --start-fullscreen "http://localhost:3000"
 exit

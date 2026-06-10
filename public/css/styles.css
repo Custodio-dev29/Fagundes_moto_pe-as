@@ -7,7 +7,7 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(rgba(26, 26, 26, 0.85), rgba(74, 14, 14, 0.85)), 
-                url('../assets/Banner.jpeg') no-repeat center center fixed;
+                url('../assets/banner.jpeg') no-repeat center center fixed;
     background-size: cover;
     min-height: 100vh;
     margin: 0;

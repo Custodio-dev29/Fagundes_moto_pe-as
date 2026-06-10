@@ -4,6 +4,9 @@ export class ConfigView {
     }
 
     render(settings) {
+        document.getElementById('header-title-container').innerHTML = `<h2><i class="fa-solid fa-gear"></i> Configurações</h2>`;
+        document.getElementById('header-actions-container').innerHTML = '';
+        
         this.container.innerHTML = `
             <style>
                 .accordion-item {
@@ -45,11 +48,6 @@ export class ConfigView {
             </style>
 
             <div class="inventory-section">
-                <div class="inventory-header">
-                    <h2><i class="fa-solid fa-gear"></i> Configurações do Sistema</h2>
-                    <p>Gerenciamento de manutenção e segurança dos dados.</p>
-                </div>
-
                 <div class="accordion-item" style="max-width: 800px;">
                     <div class="accordion-header" id="accordion-toggle">
                         <h3><i class="fa-solid fa-database"></i> Configurações de Backup Automatizado</h3>

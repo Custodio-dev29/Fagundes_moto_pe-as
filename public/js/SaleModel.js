@@ -15,18 +15,9 @@ export class SaleModel {
     }
 
     async add(sale) {
-        const payload = {
-            customerId: sale.customerId,
-            productId: sale.productId,
-            qty: sale.qty,
-            unitPrice: sale.total / sale.qty,
-            total: sale.total,
-            paymentMethod: sale.paymentMethod,
-        };
-
         const response = await fetchWithAuth(this.apiUrl, {
             method: 'POST',
-            body: JSON.stringify(payload)
+            body: JSON.stringify(sale)
         });
         return await response.json();
     }

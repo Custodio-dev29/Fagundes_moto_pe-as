@@ -81,8 +81,9 @@ const startBackupSchedule = (hours) => {
 
 const cspDirectives = {
     "default-src": ["'self'"],
-    "script-src": ["'self'"],
-    "style-src": ["'self'", "https://cdnjs.cloudflare.com"],
+    "script-src": ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+    "script-src-elem": ["'self'", "https://cdn.jsdelivr.net"],
+    "style-src": ["'self'", "https://cdnjs.cloudflare.com", "'unsafe-inline'"],
     "font-src": ["'self'", "https://cdnjs.cloudflare.com"],
     "img-src": ["'self'", "data:"],
     "connect-src": ["'self'"]
@@ -90,7 +91,6 @@ const cspDirectives = {
 
 if (!isProduction) {
     cspDirectives["script-src"].push("'unsafe-inline'");
-    cspDirectives["style-src"].push("'unsafe-inline'");
 }
 
 app.use(cors({
@@ -101,6 +101,7 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: cspDirectives
     },
+    crossOriginEmbedderPolicy: false,
 }));
 
 // Middleware para desativar o cache (evita ter que usar Ctrl+F5)
@@ -115,15 +116,20 @@ db.serialize(() => {
     db.run("PRAGMA foreign_keys = ON");
 
     // Tabela de Produtos
-    db.run(`CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY,
-        name TEXT,
-        purchasePrice REAL,
-        price REAL,
-        stock INTEGER,
-        minStock INTEGER,
-        updatedAt TEXT
-    )`);
+    db.run(`CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, supplier TEXT, stock INTEGER)`, (err) => {
+        if (err) console.error('Erro ao verificar tabela products:', err.message);
+        
+        // Garante a existência das novas colunas de forma segura
+        db.run("ALTER TABLE products ADD COLUMN maxStock INTEGER", (err) => {
+            if (err && !err.message.includes("duplicate column name")) console.error("Erro Migração maxStock:", err.message);
+        });
+        db.run("ALTER TABLE products ADD COLUMN minStock INTEGER", (err) => {
+            if (err && !err.message.includes("duplicate column name")) console.error("Erro Migração minStock:", err.message);
+        });
+        db.run("ALTER TABLE products ADD COLUMN updatedAt TEXT", (err) => {
+            if (err && !err.message.includes("duplicate column name")) console.error("Erro Migração updatedAt:", err.message);
+        });
+    });
 
     // Tabela de Clientes
     db.run(`CREATE TABLE IF NOT EXISTS customers (
@@ -136,13 +142,35 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS sales (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         customerId INTEGER,
-        productId INTEGER,
-        qty INTEGER,
-        unitPrice REAL,
         total REAL,
         paymentMethod TEXT,
         date TEXT,
-        FOREIGN KEY(customerId) REFERENCES customers(id) ON UPDATE CASCADE ON DELETE CASCADE,
+        FOREIGN KEY(customerId) REFERENCES customers(id) ON UPDATE CASCADE ON DELETE CASCADE
+    )`);
+
+    // Tabela de Itens da Venda
+    db.run(`CREATE TABLE IF NOT EXISTS sale_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        saleId INTEGER,
+        productId INTEGER,
+        qty INTEGER,
+        unitPrice REAL,
+        subtotal REAL,
+        FOREIGN KEY(saleId) REFERENCES sales(id) ON UPDATE CASCADE ON DELETE CASCADE,
+        FOREIGN KEY(productId) REFERENCES products(id) ON UPDATE CASCADE ON DELETE CASCADE
+    )`);
+
+    // Tabela de Entradas de NF
+    db.run(`CREATE TABLE IF NOT EXISTS nf_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nfNumber TEXT,
+        productId INTEGER,
+        qty INTEGER,
+        totalValue REAL,
+        unitPrice REAL,
+        sellingPrice REAL,
+        profitMargin REAL,
+        date TEXT,
         FOREIGN KEY(productId) REFERENCES products(id) ON UPDATE CASCADE ON DELETE CASCADE
     )`);
 
@@ -194,7 +222,12 @@ const authenticate = (req, res, next) => {
 // Exemplo de aplicação do middleware em rotas sensíveis
 app.get('/api/products', authenticate, (req, res) => {
     console.log('Buscando produtos...');
-    db.all("SELECT * FROM products ORDER BY name ASC", [], (err, rows) => {
+    const sql = `
+        SELECT p.*, 
+               COALESCE((SELECT sellingPrice FROM nf_entries WHERE productId = p.id ORDER BY date DESC LIMIT 1), 0) as sellingPrice
+        FROM products p
+        ORDER BY p.name ASC`;
+    db.all(sql, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(rows);
     });
@@ -202,23 +235,39 @@ app.get('/api/products', authenticate, (req, res) => {
 
 app.post('/api/products', authenticate, (req, res) => {
     const p = req.body;
-    console.log('Cadastrando produto:', p);
-    const sql = `INSERT INTO products (id, name, purchasePrice, price, stock, minStock, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-    db.run(sql, [parseInt(p.id), p.name, p.purchasePrice, p.price, p.stock, p.minStock, new Date().toISOString()], function(err) {
+    const id = parseInt(p.id);
+    const stock = parseInt(p.stock) || 0;
+    const minStock = parseInt(p.minStock) || 0;
+    const maxStock = parseInt(p.maxStock) || 0;
+
+    if (!id || isNaN(id)) {
+        return res.status(400).json({ success: false, message: "Código do produto é obrigatório e deve ser numérico." });
+    }
+
+    const sql = `INSERT INTO products (id, name, supplier, stock, maxStock, minStock) VALUES (?, ?, ?, ?, ?, ?)`;
+    db.run(sql, [id, p.name, p.supplier, stock, maxStock, minStock], function(err) {
         if (err) {
+            console.error('--- ERRO NO BANCO DE DADOS ---');
+            console.error('Mensagem:', err.message);
+            console.error('Payload recebido:', p);
             if (err.message.includes('UNIQUE')) {
                 return res.status(400).json({ success: false, message: "Este código de produto já está cadastrado." });
             }
-            return res.status(500).json({ error: err.message });
+            return res.status(500).json({ success: false, error: err.message });
         }
-        res.json({ success: true, id: p.id || this.lastID });
+        res.json({ success: true, id: id || this.lastID });
     });
 });
 
 app.put('/api/products/:id', authenticate, (req, res) => {
     const p = req.body;
-    const sql = `UPDATE products SET id=?, name=?, purchasePrice=?, price=?, stock=?, minStock=?, updatedAt=? WHERE id=?`;
-    db.run(sql, [parseInt(p.id), p.name, p.purchasePrice, p.price, p.stock, p.minStock, new Date().toISOString(), req.params.id], (err) => {
+    const id = parseInt(p.id);
+    const stock = parseInt(p.stock) || 0;
+    const minStock = parseInt(p.minStock) || 0;
+    const maxStock = parseInt(p.maxStock) || 0;
+
+    const sql = `UPDATE products SET id=?, name=?, supplier=?, stock=?, maxStock=?, minStock=? WHERE id=?`;
+    db.run(sql, [id, p.name, p.supplier, stock, maxStock, minStock, req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true });
     });
@@ -236,6 +285,37 @@ app.patch('/api/products/:id/stock', authenticate, (req, res) => {
     db.run(`UPDATE products SET stock = ?, updatedAt = ? WHERE id = ?`, [stock, new Date().toISOString(), req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true });
+    });
+});
+
+// --- ROTAS DE ENTRADA DE NF ---
+app.get('/api/nf-entries', authenticate, (req, res) => {
+    const sql = `
+        SELECT n.*, p.name as productName, p.supplier as supplierName
+        FROM nf_entries n
+        LEFT JOIN products p ON n.productId = p.id
+        ORDER BY n.date DESC`;
+    db.all(sql, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+app.post('/api/nf-entries', authenticate, (req, res) => {
+    const n = req.body;
+    const date = new Date().toISOString();
+    const sql = `INSERT INTO nf_entries (nfNumber, productId, qty, totalValue, unitPrice, sellingPrice, profitMargin, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+    
+    db.serialize(() => {
+        db.run(sql, [n.nfNumber, n.productId, n.qty, n.totalValue, n.unitPrice, n.sellingPrice, n.profitMargin, date], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            // Atualiza o estoque do produto automaticamente
+            db.run(`UPDATE products SET stock = stock + ? WHERE id = ?`, [n.qty, n.productId], (err) => {
+                if (err) console.error("Erro ao atualizar estoque via NF:", err.message);
+                res.json({ success: true, id: this.lastID });
+            });
+        });
     });
 });
 
@@ -274,10 +354,11 @@ app.delete('/api/customers/:id', authenticate, (req, res) => {
 // --- ROTAS DE VENDAS ---
 app.get('/api/sales', authenticate, (req, res) => {
     const sql = `
-        SELECT s.*, c.name as customerName, ('#' || p.id || ' - ' || p.name) as productName 
+        SELECT s.*, c.name as customerName,
+        (SELECT GROUP_CONCAT(p.name || ' (x' || si.qty || ')', ', ') 
+         FROM sale_items si JOIN products p ON si.productId = p.id WHERE si.saleId = s.id) as productName
         FROM sales s
         LEFT JOIN customers c ON s.customerId = c.id
-        LEFT JOIN products p ON s.productId = p.id
         ORDER BY s.date DESC`;
     db.all(sql, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -285,13 +366,52 @@ app.get('/api/sales', authenticate, (req, res) => {
     });
 });
 
+app.get('/api/sales/:id/items', authenticate, (req, res) => {
+    const sql = `
+        SELECT si.*, p.name as productName 
+        FROM sale_items si 
+        JOIN products p ON si.productId = p.id 
+        WHERE si.saleId = ?`;
+    db.all(sql, [req.params.id], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
 app.post('/api/sales', authenticate, (req, res) => {
     const s = req.body;
-    console.log('Registrando venda:', s);
-    const sql = `INSERT INTO sales (customerId, productId, qty, unitPrice, total, paymentMethod, date) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-    db.run(sql, [s.customerId, s.productId, s.qty, s.unitPrice, s.total, s.paymentMethod, new Date().toISOString()], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true, id: this.lastID });
+    const date = new Date().toISOString();
+
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+
+        const saleSql = `INSERT INTO sales (customerId, total, paymentMethod, date) VALUES (?, ?, ?, ?)`;
+        db.run(saleSql, [s.customerId, s.total, s.paymentMethod, date], function(err) {
+            if (err) {
+                db.run("ROLLBACK");
+                return res.status(500).json({ error: err.message });
+            }
+
+            const saleId = this.lastID;
+            const itemSql = `INSERT INTO sale_items (saleId, productId, qty, unitPrice, subtotal) VALUES (?, ?, ?, ?, ?)`;
+            
+            let hasError = false;
+            if (s.items && s.items.length > 0) {
+                s.items.forEach(item => {
+                    db.run(itemSql, [saleId, item.productId, item.qty, item.unitPrice, item.subtotal], (err) => {
+                        if (err) hasError = true;
+                    });
+                });
+            }
+
+            if (hasError) {
+                db.run("ROLLBACK");
+                return res.status(500).json({ error: "Erro ao inserir itens da venda" });
+            }
+
+            db.run("COMMIT");
+            res.json({ success: true, id: saleId });
+        });
     });
 });
 
@@ -305,9 +425,79 @@ app.put('/api/sales/:id', authenticate, (req, res) => {
 });
 
 app.delete('/api/sales/:id', authenticate, (req, res) => {
-    db.run(`DELETE FROM sales WHERE id = ?`, req.params.id, (err) => {
+    const saleId = req.params.id;
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+        // 1. Devolve o estoque de todos os itens da venda
+        const updateStockSql = `UPDATE products SET stock = stock + (SELECT qty FROM sale_items WHERE saleId = ? AND productId = products.id) WHERE id IN (SELECT productId FROM sale_items WHERE saleId = ?)`;
+        db.run(updateStockSql, [saleId, saleId], (err) => {
+            if (err) {
+                db.run("ROLLBACK");
+                return res.status(500).json({ error: "Erro ao estornar estoque" });
+            }
+            // 2. Deleta a venda (o sale_items será deletado via ON DELETE CASCADE no SQLite)
+            db.run(`DELETE FROM sales WHERE id = ?`, [saleId], (err) => {
+                if (err) {
+                    db.run("ROLLBACK");
+                    return res.status(500).json({ error: err.message });
+                }
+                db.run("COMMIT");
+                res.json({ success: true });
+            });
+        });
+    });
+});
+// --- ROTA DE FECHAMENTO DE CAIXA ---
+app.get('/api/reports/cash-closure', authenticate, (req, res) => {
+    const { start, end } = req.query;
+    let sql = `
+        SELECT 
+            paymentMethod, 
+            SUM(total) as total,
+            COUNT(id) as count 
+        FROM sales 
+        WHERE 1=1`;
+    const params = [];
+
+    if (start && end) {
+        sql += ` AND date BETWEEN ? AND ?`;
+        params.push(`${start}T00:00:00.000Z`, `${end}T23:59:59.999Z`);
+    } else {
+        const today = new Date().toISOString().split('T')[0];
+        sql += ` AND date >= ? AND date <= ?`;
+        params.push(`${today}T00:00:00.000Z`, `${today}T23:59:59.999Z`);
+    }
+    sql += ` GROUP BY paymentMethod`;
+    
+    db.all(sql, params, (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true });
+        res.json(rows || []);
+    });
+});
+
+app.get('/api/reports/top-products', authenticate, (req, res) => {
+    const { start, end } = req.query;
+    let sql = `
+        SELECT p.name, SUM(si.qty) as totalQty 
+        FROM sale_items si 
+        JOIN products p ON si.productId = p.id 
+        JOIN sales s ON si.saleId = s.id 
+        WHERE 1=1`;
+    const params = [];
+
+    if (start && end) {
+        sql += ` AND s.date BETWEEN ? AND ?`;
+        params.push(`${start}T00:00:00.000Z`, `${end}T23:59:59.999Z`);
+    } else {
+        const today = new Date().toISOString().split('T')[0];
+        sql += ` AND s.date >= ? AND s.date <= ?`;
+        params.push(`${today}T00:00:00.000Z`, `${today}T23:59:59.999Z`);
+    }
+    sql += ` GROUP BY p.id ORDER BY totalQty DESC LIMIT 10`;
+
+    db.all(sql, params, (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows || []);
     });
 });
 
@@ -376,6 +566,14 @@ app.post('/api/auth/login', async (req, res) => {
             }
         });
     });
+});
+
+// Rota para encerrar o servidor (Shutdown)
+app.post('/api/system/shutdown', authenticate, (req, res) => {
+    res.json({ success: true, message: "Encerrando servidor..." });
+    setTimeout(() => {
+        process.exit(0);
+    }, 1000);
 });
 
 // Rota para silenciar o erro do favicon.ico

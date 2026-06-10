@@ -13,6 +13,7 @@ export class InventoryController {
         this.view.renderForm(products);
         this.view.bindUpdateStock((id, val) => this.view.showModal(id, val));
         this.view.bindEditAction((id) => this.handleOpenEditModal(id));
+        this.view.bindSearch();
         this.currentView = 'registration';
     }
 
@@ -21,6 +22,7 @@ export class InventoryController {
         this.view.renderTable(products);
         this.view.bindUpdateStock((id, val) => this.view.showModal(id, val));
         this.view.bindEditAction((id) => this.handleOpenEditModal(id));
+        this.view.bindSearch();
         this.currentView = 'inventory';
     }
 

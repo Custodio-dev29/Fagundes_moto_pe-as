@@ -4,19 +4,13 @@ export class CustomerView {
     }
 
     render(customers) {
+        document.getElementById('header-title-container').innerHTML = `<h2><i class="fa-solid fa-users"></i> Gerenciamento de Clientes</h2>`;
+        document.getElementById('header-actions-container').innerHTML = `
+            <button id="btn-open-customer-modal" class="btn-primary-action"><i class="fa-solid fa-plus"></i> Novo Cliente</button>
+        `;
         this.container.innerHTML = `
             <div class="inventory-section">
-                <div class="inventory-header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h2><i class="fa-solid fa-users"></i> Gerenciamento de Clientes</h2>
-                        <p>Visualize e gerencie seus clientes cadastrados.</p>
-                    </div>
-                    <button id="btn-open-customer-modal" class="btn-primary-action" style="margin-left: 0;">
-                        <i class="fa-solid fa-plus"></i> Novo Cliente
-                    </button>
-                </div>
-
-                <div class="inventory-list" style="margin-top: 30px;">
+                <div class="inventory-list">
                 <h3>Todos os Clientes</h3>
                 <table class="inventory-table">
                     <thead>

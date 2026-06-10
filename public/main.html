@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel - Fagundes Moto Peças</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="css/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/main.js" type="module"></script>
 </head>
 <body>
     <div class="layout has-sidebar">
-        <aside id="sidebar" class="sidebar break-point-lg shadow">
+        <aside id="sidebar" class="sidebar break-point-lg shadow collapsed">
             <div class="sidebar-layout">
                 <div class="sidebar-header">
                     <span class="logo-text">Fagundes Moto Peças</span>
@@ -19,8 +20,8 @@
                     <nav class="menu">
                         <ul>
                             <li class="menu-header"><span>GERENCIAMENTO</span></li>
-                            <li class="menu-item active">
-                                <a href="#"><span class="menu-icon"><i class="fa-solid fa-gauge"></i></span><span class="menu-title">Dashboard</span></a>
+                            <li class="menu-item" id="menu-cash-closure">
+                                <a href="#"><span class="menu-icon"><i class="fa-solid fa-vault"></i></span><span class="menu-title">Fechamento de Caixa</span></a>
                             </li>
                             <li class="menu-item" id="menu-register-part">
                                 <a href="#"><span class="menu-icon"><i class="fa-solid fa-plus-circle"></i></span><span class="menu-title">Cadastro de Peças</span></a>
@@ -28,8 +29,14 @@
                             <li class="menu-item" id="menu-inventory">
                                 <a href="#"><span class="menu-icon"><i class="fa-solid fa-boxes-stacked"></i></span><span class="menu-title">Estoque de Peças</span></a>
                             </li>
+                            <li class="menu-item" id="menu-nf-entry">
+                                <a href="#"><span class="menu-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span><span class="menu-title">Entrada de NF</span></a>
+                            </li>
                             <li class="menu-item" id="menu-sales">
-                                <a href="#"><span class="menu-icon"><i class="fa-solid fa-cart-shopping"></i></span><span class="menu-title">Vendas</span></a>
+                                <a href="#"><span class="menu-icon"><i class="fa-solid fa-cash-register"></i></span><span class="menu-title">PDV - Vendas</span></a>
+                            </li>
+                            <li class="menu-item" id="menu-sales-history">
+                                <a href="#"><span class="menu-icon"><i class="fa-solid fa-clock-rotate-left"></i></span><span class="menu-title">Histórico de Vendas</span></a>
                             </li>
                             <li class="menu-item" id="menu-customers">
                                 <a href="#"><span class="menu-icon"><i class="fa-solid fa-users"></i></span><span class="menu-title">Clientes</span></a>
@@ -38,8 +45,8 @@
                             <li class="menu-item" id="menu-settings">
                                 <a href="#"><span class="menu-icon"><i class="fa-solid fa-gear"></i></span><span class="menu-title">Configurações</span></a>
                             </li>
-                            <li class="menu-item">
-                                <a href="#" id="menu-logout-link"><span class="menu-icon"><i class="fa-solid fa-right-from-bracket"></i></span><span class="menu-title">Sair</span></a>
+                            <li class="menu-item" id="menu-shutdown">
+                                <a href="#" style="color: #ff9800;"><span class="menu-icon"><i class="fa-solid fa-power-off"></i></span><span class="menu-title">Encerrar Sistema</span></a>
                             </li>
                         </ul>
                     </nav>
@@ -49,13 +56,15 @@
         <div id="overlay" class="overlay"></div>
         <main class="main-content">
             <header class="content-header">
-                <button id="btn-toggle" class="btn-toggle">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-                <h2>Bem-vindo ao Sistema</h2>
+                <div style="display: flex; align-items: center;">
+                    <button id="btn-toggle" class="btn-toggle">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div id="header-title-container"></div>
+                </div>
+                <div id="header-actions-container"></div>
             </header>
             <div class="content-body">
-                <p>Aqui você poderá gerenciar todo o estoque e vendas da Fagundes Moto Peças.</p>
             </div>
         </main>
     </div>
@@ -75,7 +84,7 @@
                 </div>
                 <div class="form-group-inventory">
                     <label>Senha de Confirmação</label>
-                    <input type="password" id="modalPassword" placeholder="Sua senha atual" required>
+                    <input type="password" id="modalPassword" placeholder="Sua senha atual" autocomplete="current-password" required>
                 </div>
                 <div class="modal-actions">
                     <button type="button" id="btnCancelModal" class="btn-secondary">Cancelar</button>
@@ -102,24 +111,16 @@
                     <input type="text" id="regProdName" placeholder="Ex: Amortecedor Traseiro" required>
                 </div>
                 <div class="form-group-inventory">
-                    <label>Valor de Compra (R$)</label>
-                    <input type="number" id="regProdPurchasePrice" placeholder="0.00" step="0.01" required>
+                    <label>Fornecedor</label>
+                    <input type="text" id="regProdSupplier" placeholder="Ex: Distribuidora X">
                 </div>
                 <div class="form-group-inventory">
-                    <label>Valor de Venda (R$)</label>
-                    <input type="number" id="regProdPrice" placeholder="0.00" step="0.01" required>
-                </div>
-                <div class="form-group-inventory">
-                    <label>Margem de Lucro (%)</label>
-                    <input type="text" id="regProdMargin" readonly placeholder="Calculado automaticamente">
-                </div>
-                <div class="form-group-inventory">
-                    <label>Quantidade Inicial</label>
-                    <input type="number" id="regProdStock" placeholder="0" required>
-                </div>
-                <div class="form-group-inventory">
-                    <label>Estoque Mínimo</label>
+                    <label>Estoque Mínimo (Alerta)</label>
                     <input type="number" id="regProdMinStock" placeholder="0" required>
+                </div>
+                <div class="form-group-inventory">
+                    <label>Estoque Máximo</label>
+                    <input type="number" id="regProdMaxStock" placeholder="0" required>
                 </div>
                 <div class="modal-actions">
                     <button type="button" id="btnCancelRegister" class="btn-secondary">Cancelar</button>
@@ -147,28 +148,24 @@
                     <input type="text" id="editProdName" required>
                 </div>
                 <div class="form-group-inventory">
-                    <label>Valor de Compra (R$)</label>
-                    <input type="number" id="editProdPurchasePrice" step="0.01" required>
-                </div>
-                <div class="form-group-inventory">
-                    <label>Valor de Venda (R$)</label>
-                    <input type="number" id="editProdPrice" step="0.01" required>
-                </div>
-                <div class="form-group-inventory">
-                    <label>Margem de Lucro (%)</label>
-                    <input type="text" id="editProdMargin" readonly>
+                    <label>Fornecedor</label>
+                    <input type="text" id="editProdSupplier" required>
                 </div>
                 <div class="form-group-inventory">
                     <label>Quantidade em Estoque</label>
                     <input type="number" id="editProdStock" required>
                 </div>
                 <div class="form-group-inventory">
-                    <label>Estoque Mínimo</label>
+                    <label>Estoque Mínimo (Alerta)</label>
                     <input type="number" id="editProdMinStock" required>
                 </div>
                 <div class="form-group-inventory">
+                    <label>Estoque Máximo</label>
+                    <input type="number" id="editProdMaxStock" required>
+                </div>
+                <div class="form-group-inventory">
                     <label>Senha de Confirmação</label>
-                    <input type="password" id="editProdPassword" placeholder="Sua senha atual" required>
+                    <input type="password" id="editProdPassword" placeholder="Sua senha atual" autocomplete="current-password" required>
                 </div>
                 <div class="modal-actions">
                     <button type="button" id="btnDeleteProduct" class="btn-delete-modal">Excluir Item</button>
@@ -222,62 +219,12 @@
                 </div>
                 <div class="form-group-inventory">
                     <label>Senha de Confirmação</label>
-                    <input type="password" id="editCustPassword" placeholder="Sua senha atual" required>
+                    <input type="password" id="editCustPassword" placeholder="Sua senha atual" autocomplete="current-password" required>
                 </div>
                 <div class="modal-actions">
                     <button type="button" id="btnDeleteCustomer" class="btn-delete-modal">Excluir Cliente</button>
                     <button type="submit" class="btn-submit-inventory">Salvar Alterações</button>
                     <button type="button" id="btnCancelEditCustomer" class="btn-secondary">Voltar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal para Cadastro de Vendas -->
-    <div id="saleModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-cart-plus"></i> Registrar Nova Venda</h3>
-                <p>Selecione o cliente e a peça para finalizar a venda.</p>
-            </div>
-            <form id="sale-form">
-                <div class="form-group-inventory">
-                    <label>Cliente</label>
-                    <select id="saleCustomer" required>
-                        <option value="">Selecione um cliente...</option>
-                    </select>
-                </div>
-                <div class="form-group-inventory">
-                    <label>Peça / Produto</label>
-                    <select id="salePart" required>
-                        <option value="">Selecione uma peça...</option>
-                    </select>
-                </div>
-                <div class="form-group-inventory">
-                    <label>Quantidade</label>
-                    <input type="number" id="saleQty" value="1" min="1" required>
-                </div>
-                <div class="form-group-inventory">
-                    <label>Forma de Pagamento</label>
-                    <select id="salePaymentMethod" required>
-                        <option value="">Selecione...</option>
-                        <option value="Dinheiro">Dinheiro</option>
-                        <option value="Cartão de Crédito">Cartão de Crédito</option>
-                        <option value="Cartão de Débito">Cartão de Débito</option>
-                        <option value="PIX">PIX</option>
-                    </select>
-                </div>
-                <div class="form-group-inventory">
-                    <label>Valor Unitário (R$)</label>
-                    <input type="number" id="saleUnitPrice" readonly step="0.01">
-                </div>
-                <div class="form-group-inventory">
-                    <label>Total da Venda</label>
-                    <input type="text" id="saleTotal" readonly value="R$ 0,00" style="font-weight: bold; color: var(--sidebar-bg);">
-                </div>
-                <div class="modal-actions">
-                    <button type="button" id="btnCancelSale" class="btn-secondary">Cancelar</button>
-                    <button type="submit" class="btn-submit-inventory">Finalizar Venda</button>
                 </div>
             </form>
         </div>
@@ -319,12 +266,67 @@
                 </div>
                 <div class="form-group-inventory">
                     <label>Senha de Confirmação</label>
-                    <input type="password" id="editSalePassword" placeholder="Sua senha atual" required>
+                    <input type="password" id="editSalePassword" placeholder="Sua senha atual" autocomplete="current-password" required>
                 </div>
                 <div class="modal-actions">
                     <button type="button" id="btnDeleteSale" class="btn-delete-modal">Excluir Venda</button>
                     <button type="submit" class="btn-submit-inventory">Salvar Alterações</button>
                     <button type="button" id="btnCancelEditSale" class="btn-secondary">Voltar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Entrada de NF -->
+    <div id="nfEntryModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-file-circle-plus"></i> Registrar Entrada de NF</h3>
+                <p>Insira os dados da nota para atualizar o estoque e custos.</p>
+            </div>
+            <form id="nf-entry-form">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group-inventory">
+                        <label>Número da NF</label>
+                        <input type="text" id="nfNum" placeholder="000.000" required>
+                    </div>
+                    <div class="form-group-inventory">
+                        <label>Código do Produto</label>
+                        <input type="text" id="nfProdId" list="nfProductList" placeholder="Busque por nome ou código..." required>
+                        <datalist id="nfProductList"></datalist>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                    <div class="form-group-inventory">
+                        <label>Quantidade</label>
+                        <input type="number" id="nfQty" min="1" required>
+                    </div>
+                    <div class="form-group-inventory">
+                        <label>Valor Total da NF (R$)</label>
+                        <input type="number" id="nfTotalValue" step="0.01" required>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                    <div class="form-group-inventory">
+                        <label>Preço Unitário (Custo)</label>
+                        <input type="text" id="nfUnitPrice" readonly style="background: #f0f0f0; font-weight: bold;">
+                    </div>
+                    <div class="form-group-inventory">
+                        <label>Valor para Venda (R$)</label>
+                        <input type="number" id="nfSellingPrice" step="0.01" required>
+                    </div>
+                </div>
+
+                <div class="form-group-inventory" style="margin-top: 10px;">
+                    <label>Percentual de Ganho (%)</label>
+                    <input type="text" id="nfMargin" readonly style="background: #e1f5fe; color: #0288d1; font-weight: bold;">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" id="btnCancelNF" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-submit-inventory">Confirmar Entrada</button>
                 </div>
             </form>
         </div>

@@ -7,10 +7,17 @@ import { CustomerView } from './CustomerView.js';
 import { CustomerController } from './CustomerController.js';
 import { SaleModel } from './SaleModel.js';
 import { SaleView } from './SaleView.js';
+import { SaleHistoryView } from './SaleHistoryView.js';
 import { SaleController } from './SaleController.js';
 import { ConfigModel } from './ConfigModel.js';
 import { ConfigView } from './ConfigView.js';
 import { ConfigController } from './ConfigController.js';
+import { NFEntryModel } from './NFEntryModel.js';
+import { NFEntryView } from './NFEntryView.js';
+import { NFEntryController } from './NFEntryController.js';
+import { CashClosureView } from './CashClosureView.js';
+import { CashClosureController } from './CashClosureController.js';
+import { fetchWithAuth } from './api.js';
 
 // Remove Service Workers antigos que podem estar travando o cache/listas
 if ('serviceWorker' in navigator) {
@@ -24,11 +31,14 @@ if ('serviceWorker' in navigator) {
 const btnToggle = document.getElementById('btn-toggle');
 const sidebar = document.getElementById('sidebar');
 const overlay = document.getElementById('overlay');
+const menuCashClosure = document.getElementById('menu-cash-closure');
 const menuInventory = document.getElementById('menu-inventory');
 const menuRegisterPart = document.getElementById('menu-register-part');
 const menuCustomers = document.getElementById('menu-customers');
 const menuSales = document.getElementById('menu-sales');
 const menuSettings = document.getElementById('menu-settings');
+const menuNFEntry = document.getElementById('menu-nf-entry');
+const menuShutdown = document.getElementById('menu-shutdown');
 
 const toggleSidebar = () => {
     sidebar.classList.toggle('collapsed');
@@ -60,6 +70,8 @@ const inventoryController = new InventoryController(
     authModel
 );
 
+const cashClosureController = new CashClosureController(new CashClosureView());
+
 const customerController = new CustomerController(
     customerModel,
     new CustomerView(),
@@ -69,6 +81,7 @@ const customerController = new CustomerController(
 const saleController = new SaleController(
     new SaleModel(),
     new SaleView(),
+    new SaleHistoryView(),
     customerModel,
     inventoryModel,
     authModel
@@ -80,17 +93,11 @@ const configController = new ConfigController(
     authModel
 );
 
-// Logout binding
-const logoutLink = document.getElementById('menu-logout-link');
-if (logoutLink) {
-    logoutLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        try {
-            authModel.clearToken();
-            window.location.replace('index.html');
-        } catch (_) {}
-    });
-}
+const nfEntryController = new NFEntryController(
+    new NFEntryModel(),
+    new NFEntryView(),
+    inventoryModel
+);
 
 const handleMenuClick = (menuId, callback) => {
     const element = document.getElementById(menuId);
@@ -104,6 +111,10 @@ const handleMenuClick = (menuId, callback) => {
         });
     }
 };
+
+if (menuCashClosure) {
+    handleMenuClick('menu-cash-closure', () => cashClosureController.showClosure());
+}
 
 if (menuInventory) {
     handleMenuClick('menu-inventory', () => inventoryController.showInventory());
@@ -121,8 +132,31 @@ if (menuSales) {
     handleMenuClick('menu-sales', () => saleController.showSales());
 }
 
+if (document.getElementById('menu-sales-history')) {
+    handleMenuClick('menu-sales-history', () => saleController.showHistory());
+}
+
 if (menuSettings) {
     handleMenuClick('menu-settings', () => configController.showSettings());
+}
+
+if (menuNFEntry) {
+    handleMenuClick('menu-nf-entry', () => nfEntryController.showNFEntries());
+}
+
+if (menuShutdown) {
+    menuShutdown.addEventListener('click', async (e) => {
+        e.preventDefault();
+        if (confirm('Deseja realmente desligar o servidor e encerrar o sistema?')) {
+            try {
+                await fetchWithAuth('/api/system/shutdown', { method: 'POST' });
+                document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column;"><h1>Sistema Encerrado</h1><p>O servidor foi desligado com sucesso. Pode fechar esta aba.</p></div>';
+                setTimeout(() => window.close(), 2000);
+            } catch (err) {
+                alert('Servidor desligado.');
+            }
+        }
+    });
 }
 
 // Delegação de evento para o botão Novo Item que agora é dinâmico na View
@@ -133,10 +167,8 @@ document.addEventListener('click', async (e) => {
     if (e.target.closest('#btn-open-customer-modal')) {
         customerController.view.showRegisterModal();
     }
-    if (e.target.closest('#btn-open-sale-modal')) {
-        const customers = await customerModel.getAll();
-        const products = await inventoryModel.getAllProducts();
-        saleController.view.showRegisterModal(customers, products);
+    if (e.target.closest('#btn-open-nf-modal')) {
+        nfEntryController.view.showModal();
     }
 });
 
@@ -144,5 +176,5 @@ window.addEventListener('resize', () => {
     if (window.innerWidth > 992) overlay.classList.remove('active');
 });
 
-// Carga inicial: Mostra o estoque automaticamente ao abrir o sistema
+// Carga inicial: Mostra o estoque automaticamente
 inventoryController.showInventory();

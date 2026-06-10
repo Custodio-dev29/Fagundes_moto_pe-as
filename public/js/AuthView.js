@@ -15,8 +15,8 @@ export class AuthView {
         this.isLoginMode = initialMode !== 'register';
         localStorage.removeItem('auth_initial_mode'); // Limpa após usar
         
-        // Aplica o estado inicial visual
-        if (!this.isLoginMode) this.applyUIState();
+        // Aplica o estado inicial visual para garantir que a tela comece no modo correto (Login ou Cadastro)
+        this.applyUIState();
     }
 
     getFormData() {

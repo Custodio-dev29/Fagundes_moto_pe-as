@@ -4,49 +4,45 @@ export class InventoryView {
     }
 
     renderForm(products) {
+        document.getElementById('header-title-container').innerHTML = `<h2><i class="fa-solid fa-plus-circle"></i> Cadastro de Peças</h2>`;
+        document.getElementById('header-actions-container').innerHTML = `
+            <button id="btn-open-register-modal" class="btn-primary-action"><i class="fa-solid fa-plus"></i> Novo Item</button>
+        `;
         this.container.innerHTML = `
             <div class="inventory-section">
-                <div class="inventory-header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h2><i class="fa-solid fa-plus-circle"></i> Cadastro de Peças</h2>
-                        <p>Cadastre os produtos informando o código e detalhes abaixo.</p>
+                <div class="inventory-list">
+                    <div class="search-container">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="inventorySearch" class="search-input" placeholder="Buscar por nome ou código...">
                     </div>
-                    <button id="btn-open-register-modal" class="btn-primary-action" style="margin-left: 0;">
-                        <i class="fa-solid fa-plus"></i> Novo Item
-                    </button>
-                </div>
-                <div class="inventory-list" style="margin-top: 30px;">
                     <h3>Peças Cadastradas Recentemente</h3>
                     <table class="inventory-table">
                         <thead>
                             <tr>
                                 <th>Código</th>
                                 <th>Produto</th>
-                                <th>V. Compra</th>
-                                <th>Valor</th>
-                                <th>Margem (%)</th>
+                                <th>Fornecedor</th>
                                 <th>Estoque</th>
                                 <th>E. Mín</th>
+                                <th>E. Máx</th>
+                                <th>Preço</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="inventoryTableBody">
                             ${products.length === 0 ? '<tr><td colspan="8" style="text-align:center">Nenhum produto cadastrado.</td></tr>' : 
                             products.map(p => {
-                                const purchasePrice = p.purchasePrice || 0;
-                                const price = p.price || 0;
                                 const stock = p.stock || 0;
                                 const minStock = p.minStock || 0;
-                                const margin = purchasePrice > 0 ? (((price - purchasePrice) / purchasePrice) * 100).toFixed(2) : "0.00";
                                 return `
                                     <tr>
                                         <td><strong>${p.id}</strong></td>
                                         <td>${p.name}</td>
-                                        <td>R$ ${purchasePrice.toFixed(2)}</td>
-                                        <td>R$ ${price.toFixed(2)}</td>
-                                        <td>${margin}%</td>
+                                        <td>${p.supplier || '-'}</td>
                                         <td style="color: ${stock < minStock ? 'white' : 'inherit'}; background-color: ${stock < minStock ? '#dd4c62' : 'inherit'};">${stock}</td>
                                         <td>${minStock}</td>
+                                        <td>${p.maxStock || '-'}</td>
+                                        <td>${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.sellingPrice || 0)}</td>
                                         <td>
                                             <button class="btn-edit-action" data-id="${p.id}" title="Editar item">
                                                 <i class="fa-solid fa-pen-to-square"></i>
@@ -63,37 +59,38 @@ export class InventoryView {
     }
 
     renderTable(products) {
+        document.getElementById('header-title-container').innerHTML = `<h2><i class="fa-solid fa-boxes-stacked"></i> Estoque de Peças</h2>`;
+        document.getElementById('header-actions-container').innerHTML = '';
         this.container.innerHTML = `
             <div class="inventory-section">
-                <div class="inventory-header">
-                    <h2><i class="fa-solid fa-boxes-stacked"></i> Estoque de Peças</h2>
-                    <p>Lista de produtos cadastrados no sistema.</p>
-                </div>
                 <div class="inventory-list">
+                    <div class="search-container">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="inventorySearch" class="search-input" placeholder="Buscar por nome ou código...">
+                    </div>
                     <table class="inventory-table">
                         <thead>
                             <tr>
                                 <th>Código</th>
                                 <th>Produto</th>
-                                <th>Valor</th>
+                                <th>Fornecedor</th>
                                 <th>Estoque</th>
+                                <th>Preço</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="inventoryTableBody">
-                            ${products.length === 0 ? '<tr><td colspan="5" style="text-align:center">Nenhum produto cadastrado.</td></tr>' : 
+                            ${products.length === 0 ? '<tr><td colspan="6" style="text-align:center">Nenhum produto cadastrado.</td></tr>' : 
                             products.map(p => {
-                                const purchasePrice = p.purchasePrice || 0;
-                                const price = p.price || 0;
                                 const stock = p.stock || 0;
                                 const minStock = p.minStock || 0;
-                                const margin = purchasePrice > 0 ? (((price - purchasePrice) / purchasePrice) * 100).toFixed(2) : "0.00";
                                 return `
                                     <tr>
                                         <td><strong>${p.id}</strong></td>
                                         <td>${p.name}</td>
-                                        <td>R$ ${price.toFixed(2)}</td>
+                                        <td>${p.supplier || '-'}</td>
                                         <td style="color: ${stock < minStock ? 'white' : 'inherit'}; background-color: ${stock < minStock ? '#dd4c62' : 'inherit'};">${stock}</td>
+                                        <td>${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.sellingPrice || 0)}</td>
                                         <td>
                                             <button class="btn-edit-action" data-id="${p.id}" title="Editar item">
                                                 <i class="fa-solid fa-pen-to-square"></i>
@@ -109,36 +106,50 @@ export class InventoryView {
         `;
     }
 
+    bindSearch() {
+        const input = document.getElementById('inventorySearch');
+        if (!input) return;
+        input.addEventListener('input', (e) => {
+            // Normaliza o termo de busca: minúsculas, remove acentos e espaços extras
+            const searchTerm = e.target.value.toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .trim();
+
+            const rows = document.querySelectorAll('#inventoryTableBody tr');
+            
+            if (!searchTerm) {
+                rows.forEach(row => row.style.display = '');
+                return;
+            }
+
+            const searchWords = searchTerm.split(/\s+/); // Divide por espaços
+            rows.forEach(row => {
+                // Normaliza o texto da linha para comparação
+                const rowText = row.textContent.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                // Verifica se TODAS as palavras da busca estão presentes na linha
+                const isMatch = searchWords.every(word => rowText.includes(word));
+                row.style.display = isMatch ? '' : 'none';
+            });
+        });
+    }
+
     bindAddProduct(handler) {
         const form = document.getElementById('registerProductForm');
         const btnCancel = document.getElementById('btnCancelRegister');
         if (!form || !btnCancel) return;
-
-        const purchaseInput = document.getElementById('regProdPurchasePrice');
-        const saleInput = document.getElementById('regProdPrice');
-        const marginInput = document.getElementById('regProdMargin');
-
-        const updateMargin = () => {
-            const buy = parseFloat(purchaseInput.value) || 0;
-            const sell = parseFloat(saleInput.value) || 0;
-            const margin = buy > 0 ? (((sell - buy) / buy) * 100).toFixed(2) : "0.00";
-            marginInput.value = margin + "%";
-        };
-
-        purchaseInput.addEventListener('input', updateMargin);
-        saleInput.addEventListener('input', updateMargin);
 
         btnCancel.addEventListener('click', () => this.closeRegisterModal());
 
         form.addEventListener('submit', e => {
             e.preventDefault();
             const data = {
-                id: document.getElementById('regProdId').value,
+                id: parseInt(document.getElementById('regProdId').value),
                 name: document.getElementById('regProdName').value,
-                purchasePrice: document.getElementById('regProdPurchasePrice').value,
-                price: document.getElementById('regProdPrice').value,
-                stock: document.getElementById('regProdStock').value,
-                minStock: document.getElementById('regProdMinStock').value
+                supplier: document.getElementById('regProdSupplier').value,
+                stock: 0,
+                minStock: parseInt(document.getElementById('regProdMinStock').value) || 0,
+                maxStock: parseInt(document.getElementById('regProdMaxStock').value) || 0
             };
             handler(data);
         });
@@ -211,25 +222,11 @@ export class InventoryView {
         document.getElementById('editProdIdOriginal').value = prodId;
         document.getElementById('editProdId').value = prodId;
         document.getElementById('editProdName').value = product.name;
-        const purchasePrice = product.purchasePrice || 0;
-        const price = product.price || 0;
-        document.getElementById('editProdPurchasePrice').value = purchasePrice;
-        document.getElementById('editProdPrice').value = price;
+        document.getElementById('editProdSupplier').value = product.supplier || '';
         document.getElementById('editProdStock').value = product.stock || 0;
         document.getElementById('editProdMinStock').value = product.minStock || 0;
+        document.getElementById('editProdMaxStock').value = product.maxStock || 0;
         
-        const marginInput = document.getElementById('editProdMargin');
-        const updateEditMargin = () => {
-            const buy = parseFloat(document.getElementById('editProdPurchasePrice').value) || 0;
-            const sell = parseFloat(document.getElementById('editProdPrice').value) || 0;
-            marginInput.value = (buy > 0 ? (((sell - buy) / buy) * 100).toFixed(2) : "0.00") + "%";
-        };
-
-        document.getElementById('editProdPurchasePrice').oninput = updateEditMargin;
-        document.getElementById('editProdPrice').oninput = updateEditMargin;
-
-        const margin = purchasePrice > 0 ? (((price - purchasePrice) / purchasePrice) * 100).toFixed(2) : "0.00";
-        document.getElementById('editProdMargin').value = margin + "%";
         document.getElementById('editProdPassword').value = '';
         modal.classList.add('active');
     }
@@ -254,12 +251,12 @@ export class InventoryView {
             e.preventDefault();
             onUpdate({
                 originalId: document.getElementById('editProdIdOriginal').value,
-                id: document.getElementById('editProdId').value,
+                id: parseInt(document.getElementById('editProdId').value),
                 name: document.getElementById('editProdName').value,
-                purchasePrice: document.getElementById('editProdPurchasePrice').value,
-                price: document.getElementById('editProdPrice').value,
-                stock: document.getElementById('editProdStock').value,
-                minStock: document.getElementById('editProdMinStock').value,
+                supplier: document.getElementById('editProdSupplier').value,
+                stock: parseInt(document.getElementById('editProdStock').value) || 0,
+                minStock: parseInt(document.getElementById('editProdMinStock').value) || 0,
+                maxStock: parseInt(document.getElementById('editProdMaxStock').value) || 0,
                 password: document.getElementById('editProdPassword').value
             });
         };
