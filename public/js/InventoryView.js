@@ -1,3 +1,5 @@
+import { escapeHtml } from './utils.js';
+
 export class InventoryView {
     constructor() {
         this.container = document.querySelector('.content-body');
@@ -36,15 +38,15 @@ export class InventoryView {
                                 const minStock = p.minStock || 0;
                                 return `
                                     <tr>
-                                        <td><strong>${p.id}</strong></td>
-                                        <td>${p.name}</td>
-                                        <td>${p.supplier || '-'}</td>
+                                        <td><strong>${escapeHtml(p.id)}</strong></td>
+                                        <td>${escapeHtml(p.name)}</td>
+                                        <td>${escapeHtml(p.supplier) || '-'}</td>
                                         <td style="color: ${stock < minStock ? 'white' : 'inherit'}; background-color: ${stock < minStock ? '#dd4c62' : 'inherit'};">${stock}</td>
                                         <td>${minStock}</td>
-                                        <td>${p.maxStock || '-'}</td>
+                                        <td>${escapeHtml(p.maxStock) || '-'}</td>
                                         <td>${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.sellingPrice || 0)}</td>
                                         <td>
-                                            <button class="btn-edit-action" data-id="${p.id}" title="Editar item">
+                                            <button class="btn-edit-action" data-id="${escapeHtml(p.id)}" title="Editar item">
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </button>
                                         </td>
@@ -86,13 +88,13 @@ export class InventoryView {
                                 const minStock = p.minStock || 0;
                                 return `
                                     <tr>
-                                        <td><strong>${p.id}</strong></td>
-                                        <td>${p.name}</td>
-                                        <td>${p.supplier || '-'}</td>
+                                        <td><strong>${escapeHtml(p.id)}</strong></td>
+                                        <td>${escapeHtml(p.name)}</td>
+                                        <td>${escapeHtml(p.supplier) || '-'}</td>
                                         <td style="color: ${stock < minStock ? 'white' : 'inherit'}; background-color: ${stock < minStock ? '#dd4c62' : 'inherit'};">${stock}</td>
                                         <td>${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.sellingPrice || 0)}</td>
                                         <td>
-                                            <button class="btn-edit-action" data-id="${p.id}" title="Editar item">
+                                            <button class="btn-edit-action" data-id="${escapeHtml(p.id)}" title="Editar item">
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </button>
                                         </td>
@@ -218,7 +220,7 @@ export class InventoryView {
 
     showEditModal(product) {
         const modal = document.getElementById('editProductModal');
-        const prodId = product.id; // Garante captura do ID do banco
+        const prodId = product.id;
         document.getElementById('editProdIdOriginal').value = prodId;
         document.getElementById('editProdId').value = prodId;
         document.getElementById('editProdName').value = product.name;
@@ -226,8 +228,6 @@ export class InventoryView {
         document.getElementById('editProdStock').value = product.stock || 0;
         document.getElementById('editProdMinStock').value = product.minStock || 0;
         document.getElementById('editProdMaxStock').value = product.maxStock || 0;
-        
-        document.getElementById('editProdPassword').value = '';
         modal.classList.add('active');
     }
 
@@ -242,10 +242,9 @@ export class InventoryView {
 
         btnCancel.onclick = () => this.closeEditModal();
         
-        btnDelete.onclick = () => onDelete({
-            id: document.getElementById('editProdIdOriginal').value,
-            password: document.getElementById('editProdPassword').value
-        });
+        btnDelete.onclick = () => onDelete(
+            parseInt(document.getElementById('editProdIdOriginal').value)
+        );
 
         form.onsubmit = (e) => {
             e.preventDefault();
@@ -256,8 +255,7 @@ export class InventoryView {
                 supplier: document.getElementById('editProdSupplier').value,
                 stock: parseInt(document.getElementById('editProdStock').value) || 0,
                 minStock: parseInt(document.getElementById('editProdMinStock').value) || 0,
-                maxStock: parseInt(document.getElementById('editProdMaxStock').value) || 0,
-                password: document.getElementById('editProdPassword').value
+                maxStock: parseInt(document.getElementById('editProdMaxStock').value) || 0
             });
         };
     }

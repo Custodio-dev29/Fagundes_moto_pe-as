@@ -1,3 +1,5 @@
+import { escapeHtml } from './utils.js';
+
 export class DashboardView {
     constructor() {
         this.container = document.querySelector('.content-body');
@@ -46,7 +48,7 @@ export class DashboardView {
                                         data.todaySales.map(s => `
                                             <tr>
                                                 <td>${new Date(s.date).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</td>
-                                                <td>${s.customerName || 'Consumidor Final'}</td>
+                                                <td>${escapeHtml(s.customerName) || 'Consumidor Final'}</td>
                                                 <td style="font-weight:bold; color:#059c0d">R$ ${parseFloat(s.total).toFixed(2)}</td>
                                             </tr>
                                         `).join('')}

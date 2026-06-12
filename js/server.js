@@ -8,6 +8,13 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
+const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
+const NFceConfig = require('./nfce/NFceConfig');
+const NFceCertificate = require('./nfce/NFceCertificate');
+const NFceXml = require('./nfce/NFceXml');
+const NFceSigner = require('./nfce/NFceSigner');
+const NFceTransmitter = require('./nfce/NFceTransmitter');
 const app = express();
 
 const ROOT_DIR = path.resolve(__dirname, '..');
@@ -16,11 +23,70 @@ const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
 const DB_PATH = path.isAbsolute(process.env.DB_PATH || '') ? process.env.DB_PATH : path.resolve(ROOT_DIR, process.env.DB_PATH || 'fagundes_moto_pecas.db');
 const BACKUP_DIR = path.isAbsolute(process.env.BACKUP_DIR || '') ? process.env.BACKUP_DIR : path.resolve(ROOT_DIR, process.env.BACKUP_DIR || 'backups');
 const SALT_ROUNDS = 10;
+
+// Função de sanitização básica para dados textuais
+function sanitize(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/<[^>]*>/g, '').trim();
+}
+
+function sanitizeProduct(p) {
+    return {
+        id: p.id,
+        name: sanitize(p.name),
+        supplier: sanitize(p.supplier),
+        stock: p.stock,
+        minStock: p.minStock,
+        maxStock: p.maxStock
+    };
+}
+
+function sanitizeCustomer(c) {
+    return {
+        name: sanitize(c.name),
+        phone: sanitize(c.phone),
+        document: sanitize(c.document),
+        ie: sanitize(c.ie),
+        address: sanitize(c.address),
+        city: sanitize(c.city),
+        state: sanitize(c.state),
+        zipCode: sanitize(c.zipCode)
+    };
+}
+
+function sanitizeNFEntry(n) {
+    return {
+        nfNumber: sanitize(n.nfNumber),
+        productId: n.productId,
+        qty: n.qty,
+        totalValue: n.totalValue,
+        unitPrice: n.unitPrice,
+        sellingPrice: n.sellingPrice,
+        profitMargin: n.profitMargin
+    };
+}
+function sanitizeNFWithdrawal(n) {
+    return {
+        saleId: n.saleId,
+        nfNumber: sanitize(n.nfNumber),
+        nfType: sanitize(n.nfType) || 'NFCe',
+        cfop: sanitize(n.cfop) || '5102',
+        natureOperation: sanitize(n.natureOperation) || 'Venda',
+        customerDocument: sanitize(n.customerDocument),
+        customerAddress: sanitize(n.customerAddress),
+        totalValue: parseFloat(n.totalValue) || 0,
+        issuanceDate: n.issuanceDate || new Date().toISOString(),
+        status: sanitize(n.status) || 'Pendente',
+        authorizationProtocol: sanitize(n.authorizationProtocol),
+        xmlFile: sanitize(n.xmlFile)
+    };
+}
 const JWT_SECRET = process.env.JWT_SECRET || 'fagundes-secret-local-please-change';
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 const isProduction = process.env.NODE_ENV === 'production';
 const SSL_KEY_PATH = process.env.SSL_KEY_PATH ? path.resolve(ROOT_DIR, process.env.SSL_KEY_PATH) : null;
 const SSL_CERT_PATH = process.env.SSL_CERT_PATH ? path.resolve(ROOT_DIR, process.env.SSL_CERT_PATH) : null;
+const hasSSL = SSL_KEY_PATH && SSL_CERT_PATH && fs.existsSync(SSL_KEY_PATH) && fs.existsSync(SSL_CERT_PATH);
 
 if (JWT_SECRET === 'fagundes-secret-local-please-change') {
     console.warn('WARNING: JWT_SECRET is using the default development value. Set JWT_SECRET in .env before deploying to production.');
@@ -81,28 +147,34 @@ const startBackupSchedule = (hours) => {
 
 const cspDirectives = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+    "script-src": ["'self'", "https://cdn.jsdelivr.net"],
     "script-src-elem": ["'self'", "https://cdn.jsdelivr.net"],
     "style-src": ["'self'", "https://cdnjs.cloudflare.com", "'unsafe-inline'"],
     "font-src": ["'self'", "https://cdnjs.cloudflare.com"],
     "img-src": ["'self'", "data:"],
-    "connect-src": ["'self'"]
+    "connect-src": ["'self'", "https://cdn.jsdelivr.net"]
 };
-
-if (!isProduction) {
-    cspDirectives["script-src"].push("'unsafe-inline'");
-}
 
 app.use(cors({
     origin: isProduction ? CORS_ORIGIN : '*'
 }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
+app.use(cookieParser());
 app.use(helmet({
     contentSecurityPolicy: {
         directives: cspDirectives
     },
     crossOriginEmbedderPolicy: false,
 }));
+
+// Rate limiter para rotas de autenticação
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { success: false, message: "Muitas tentativas. Tente novamente em 15 minutos." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 // Middleware para desativar o cache (evita ter que usar Ctrl+F5)
 app.use((req, res, next) => {
@@ -135,8 +207,21 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS customers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
-        phone TEXT
-    )`);
+        phone TEXT,
+        document TEXT,
+        ie TEXT,
+        address TEXT,
+        city TEXT,
+        state TEXT,
+        zipCode TEXT
+    )`, (err) => {
+        // Migração: adicionar colunas fiscais se não existirem
+        ['document', 'ie', 'address', 'city', 'state', 'zipCode'].forEach(col => {
+            db.run(`ALTER TABLE customers ADD COLUMN ${col} TEXT`, (err) => {
+                if (err && !err.message.includes("duplicate column name")) console.error(`Erro Migração ${col}:`, err.message);
+            });
+        });
+    });
 
     // Tabela de Vendas
     db.run(`CREATE TABLE IF NOT EXISTS sales (
@@ -174,6 +259,32 @@ db.serialize(() => {
         FOREIGN KEY(productId) REFERENCES products(id) ON UPDATE CASCADE ON DELETE CASCADE
     )`);
 
+    // Tabela de Retirada de NF (Nota Fiscal de Saída)
+    db.run(`CREATE TABLE IF NOT EXISTS nf_withdrawal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        saleId INTEGER NOT NULL UNIQUE,
+        nfNumber TEXT NOT NULL,
+        nfType TEXT NOT NULL DEFAULT 'NFCe',
+        cfop TEXT DEFAULT '5102',
+        natureOperation TEXT DEFAULT 'Venda',
+        customerDocument TEXT,
+        customerAddress TEXT,
+        totalValue REAL NOT NULL,
+        issuanceDate TEXT NOT NULL,
+        status TEXT DEFAULT 'Pendente',
+        authorizationProtocol TEXT,
+        xmlFile TEXT,
+        FOREIGN KEY(saleId) REFERENCES sales(id) ON UPDATE CASCADE ON DELETE CASCADE
+    )`, (err) => {
+        if (err) console.error('Erro ao verificar tabela nf_withdrawal:', err.message);
+        // Migração: adicionar colunas NFCe
+        ['chNFe', 'authorizationDate', 'contingency', 'contingencyJustification'].forEach(col => {
+            db.run(`ALTER TABLE nf_withdrawal ADD COLUMN ${col} TEXT`, (err) => {
+                if (err && !err.message.includes("duplicate column name")) console.error(`Erro Migração ${col}:`, err.message);
+            });
+        });
+    });
+
     // Tabela de Usuários (para substituir o localStorage do AuthModel se desejar)
     db.run(`CREATE TABLE IF NOT EXISTS users (
         email TEXT PRIMARY KEY,
@@ -205,9 +316,14 @@ db.serialize(() => {
 
 // Middleware de Autenticação usando JWT
 const authenticate = (req, res, next) => {
+    let token = null;
     const auth = req.headers['authorization'];
-    if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: "Acesso negado. Token ausente." });
-    const token = auth.slice(7);
+    if (auth && auth.startsWith('Bearer ')) {
+        token = auth.slice(7);
+    } else if (req.cookies && req.cookies.authToken) {
+        token = req.cookies.authToken;
+    }
+    if (!token) return res.status(401).json({ error: "Acesso negado. Token ausente." });
     try {
         const payload = jwt.verify(token, JWT_SECRET);
         req.user = payload;
@@ -221,7 +337,6 @@ const authenticate = (req, res, next) => {
 
 // Exemplo de aplicação do middleware em rotas sensíveis
 app.get('/api/products', authenticate, (req, res) => {
-    console.log('Buscando produtos...');
     const sql = `
         SELECT p.*, 
                COALESCE((SELECT sellingPrice FROM nf_entries WHERE productId = p.id ORDER BY date DESC LIMIT 1), 0) as sellingPrice
@@ -234,7 +349,7 @@ app.get('/api/products', authenticate, (req, res) => {
 });
 
 app.post('/api/products', authenticate, (req, res) => {
-    const p = req.body;
+    const p = sanitizeProduct(req.body);
     const id = parseInt(p.id);
     const stock = parseInt(p.stock) || 0;
     const minStock = parseInt(p.minStock) || 0;
@@ -260,7 +375,7 @@ app.post('/api/products', authenticate, (req, res) => {
 });
 
 app.put('/api/products/:id', authenticate, (req, res) => {
-    const p = req.body;
+    const p = sanitizeProduct(req.body);
     const id = parseInt(p.id);
     const stock = parseInt(p.stock) || 0;
     const minStock = parseInt(p.minStock) || 0;
@@ -302,7 +417,7 @@ app.get('/api/nf-entries', authenticate, (req, res) => {
 });
 
 app.post('/api/nf-entries', authenticate, (req, res) => {
-    const n = req.body;
+    const n = sanitizeNFEntry(req.body);
     const date = new Date().toISOString();
     const sql = `INSERT INTO nf_entries (nfNumber, productId, qty, totalValue, unitPrice, sellingPrice, profitMargin, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
     
@@ -319,6 +434,344 @@ app.post('/api/nf-entries', authenticate, (req, res) => {
     });
 });
 
+app.put('/api/nf-entries/:id', authenticate, (req, res) => {
+    const n = sanitizeNFEntry(req.body);
+    const id = req.params.id;
+
+    db.serialize(() => {
+        db.get(`SELECT * FROM nf_entries WHERE id = ?`, [id], (err, oldEntry) => {
+            if (err) return res.status(500).json({ error: err.message });
+            if (!oldEntry) return res.status(404).json({ error: "Entrada de NF não encontrada." });
+
+            const sql = `UPDATE nf_entries SET nfNumber=?, productId=?, qty=?, totalValue=?, unitPrice=?, sellingPrice=?, profitMargin=? WHERE id=?`;
+            db.run(sql, [n.nfNumber, n.productId, n.qty, n.totalValue, n.unitPrice, n.sellingPrice, n.profitMargin, id], function(err) {
+                if (err) return res.status(500).json({ error: err.message });
+
+                db.run(`UPDATE products SET stock = stock - ? WHERE id = ?`, [oldEntry.qty, oldEntry.productId], (err) => {
+                    if (err) console.error("Erro ao ajustar estoque antigo via NF:", err.message);
+                    db.run(`UPDATE products SET stock = stock + ? WHERE id = ?`, [n.qty, n.productId], (err) => {
+                        if (err) console.error("Erro ao ajustar novo estoque via NF:", err.message);
+                        res.json({ success: true });
+                    });
+                });
+            });
+        });
+    });
+});
+
+app.delete('/api/nf-entries/:id', authenticate, (req, res) => {
+    const id = req.params.id;
+
+    db.serialize(() => {
+        db.get(`SELECT * FROM nf_entries WHERE id = ?`, [id], (err, entry) => {
+            if (err) return res.status(500).json({ error: err.message });
+            if (!entry) return res.status(404).json({ error: "Entrada de NF não encontrada." });
+
+            db.run(`UPDATE products SET stock = stock - ? WHERE id = ?`, [entry.qty, entry.productId], (err) => {
+                if (err) console.error("Erro ao atualizar estoque ao excluir NF:", err.message);
+                db.run(`DELETE FROM nf_entries WHERE id = ?`, [id], (err) => {
+                    if (err) return res.status(500).json({ error: err.message });
+                    res.json({ success: true });
+                });
+            });
+        });
+    });
+});
+
+// --- ROTAS DE RETIRADA DE NF (NF de Saída) ---
+app.get('/api/nf-withdrawal', authenticate, (req, res) => {
+    const { start, end } = req.query;
+    let sql = `
+        SELECT n.*, s.customerId, s.total as saleTotal, s.paymentMethod, s.date as saleDate,
+               c.name as customerName
+        FROM nf_withdrawal n
+        LEFT JOIN sales s ON n.saleId = s.id
+        LEFT JOIN customers c ON s.customerId = c.id`;
+    const params = [];
+    const conditions = [];
+    if (start && end) {
+        conditions.push(`n.issuanceDate BETWEEN ? AND ?`);
+        params.push(`${start}T00:00:00.000Z`, `${end}T23:59:59.999Z`);
+    }
+    if (conditions.length > 0) sql += ` WHERE ${conditions.join(' AND ')}`;
+    sql += ` ORDER BY n.issuanceDate DESC`;
+    db.all(sql, params, (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+app.get('/api/nf-withdrawal/next-number', authenticate, (req, res) => {
+    db.get(`SELECT MAX(CAST(nfNumber AS INTEGER)) as maxNum FROM nf_withdrawal WHERE nfNumber GLOB '[0-9]*'`, [], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const next = (row && row.maxNum ? row.maxNum : 0) + 1;
+        res.json({ nextNumber: String(next).padStart(6, '0') });
+    });
+});
+
+app.get('/api/nf-withdrawal/sale/:saleId', authenticate, (req, res) => {
+    db.get(`SELECT * FROM nf_withdrawal WHERE saleId = ?`, [req.params.saleId], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(row || null);
+    });
+});
+
+app.get('/api/nf-withdrawal/:id', authenticate, (req, res) => {
+    const sql = `
+        SELECT n.*, s.customerId, s.total as saleTotal, s.paymentMethod, s.date as saleDate,
+               c.name as customerName
+        FROM nf_withdrawal n
+        LEFT JOIN sales s ON n.saleId = s.id
+        LEFT JOIN customers c ON s.customerId = c.id
+        WHERE n.id = ?`;
+    db.get(sql, [req.params.id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: "NF não encontrada." });
+        res.json(row);
+    });
+});
+
+app.post('/api/nf-withdrawal', authenticate, (req, res) => {
+    const n = sanitizeNFWithdrawal(req.body);
+
+    db.get(`SELECT * FROM sales WHERE id = ?`, [n.saleId], (err, sale) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!sale) return res.status(404).json({ error: "Venda não encontrada." });
+
+        // Verifica se existe NF ativa (não cancelada) para esta venda
+        db.get(`SELECT id, status FROM nf_withdrawal WHERE saleId = ?`, [n.saleId], (err, existing) => {
+            if (err) return res.status(500).json({ error: err.message });
+            if (existing && existing.status !== 'Cancelada') {
+                return res.status(400).json({ error: "Esta venda já possui uma NF ativa." });
+            }
+
+            const issuanceDate = n.issuanceDate || new Date().toISOString();
+            const totalValue = n.totalValue || sale.total;
+
+            if (existing && existing.status === 'Cancelada') {
+                // Reativar NF cancelada (reverter vínculo)
+                const sql = `UPDATE nf_withdrawal SET nfNumber=?, nfType=?, cfop=?, natureOperation=?, customerDocument=?, customerAddress=?, totalValue=?, issuanceDate=?, status='Pendente' WHERE id=?`;
+                db.run(sql, [n.nfNumber, n.nfType, n.cfop, n.natureOperation, n.customerDocument, n.customerAddress, totalValue, issuanceDate, existing.id], function(err) {
+                    if (err) return res.status(500).json({ error: err.message });
+                    res.json({ success: true, id: existing.id, reopened: true });
+                });
+            } else {
+                const sql = `INSERT INTO nf_withdrawal (saleId, nfNumber, nfType, cfop, natureOperation, customerDocument, customerAddress, totalValue, issuanceDate, status)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                db.run(sql, [n.saleId, n.nfNumber, n.nfType, n.cfop, n.natureOperation, n.customerDocument, n.customerAddress, totalValue, issuanceDate, 'Pendente'], function(err) {
+                    if (err) return res.status(500).json({ error: err.message });
+                    res.json({ success: true, id: this.lastID });
+                });
+            }
+        });
+    });
+});
+
+app.put('/api/nf-withdrawal/:id/cancel', authenticate, (req, res) => {
+    const id = req.params.id;
+    db.get(`SELECT * FROM nf_withdrawal WHERE id = ?`, [id], (err, nf) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!nf) return res.status(404).json({ error: "NF não encontrada." });
+        if (nf.status === 'Cancelada') return res.status(400).json({ error: "NF já está cancelada." });
+
+        db.run(`UPDATE nf_withdrawal SET status = 'Cancelada' WHERE id = ?`, [id], (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ success: true, saleId: nf.saleId });
+        });
+    });
+});
+
+// --- ROTAS NFCe (Integração SEFAZ) ---
+
+app.put('/api/nf-withdrawal/:id/transmit', authenticate, (req, res) => {
+    const id = req.params.id;
+    db.get(`SELECT n.*, s.customerId, s.total as saleTotal, s.paymentMethod, s.date as saleDate,
+                   c.name as customerName, c.document as customerDocumentFull, c.address as customerAddressFull,
+                   c.city as customerCity, c.state as customerState, c.zipCode as customerZip
+            FROM nf_withdrawal n
+            LEFT JOIN sales s ON n.saleId = s.id
+            LEFT JOIN customers c ON s.customerId = c.id
+            WHERE n.id = ?`, [id], async (err, nf) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!nf) return res.status(404).json({ error: "NF não encontrada." });
+
+        NFceConfig.getDefaults(db, async (err, config) => {
+            if (err) return res.status(500).json({ error: "Erro ao carregar configuração NFCe." });
+
+            let certificate = null;
+            if (config.certPath) {
+                try {
+                    certificate = NFceCertificate.loadFromPfx(config.certPath, config.certPassword || '');
+                    if (!certificate.isValid()) {
+                        return res.status(400).json({ error: 'Certificado digital expirado ou inválido.' });
+                    }
+                } catch (e) {
+                    return res.status(400).json({ error: `Erro ao carregar certificado: ${e.message}` });
+                }
+            }
+
+            try {
+                const saleItems = await new Promise((resolve, reject) => {
+                    db.all(`SELECT si.*, p.name as productName FROM sale_items si JOIN products p ON si.productId = p.id WHERE si.saleId = ?`, [nf.saleId], (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows || []);
+                    });
+                });
+
+                const nfData = {
+                    ...nf,
+                    customerName: nf.customerName,
+                    customerDocument: nf.customerDocumentFull || nf.customerDocument,
+                    customerAddress: nf.customerAddressFull || nf.customerAddress,
+                    customerCity: nf.customerCity,
+                    customerState: nf.customerState,
+                    customerZip: nf.customerZip,
+                };
+
+                const { xml, chave } = NFceXml.generate(nfData, saleItems, config);
+
+                let signedXml = xml;
+                if (certificate) {
+                    const signer = new NFceSigner(certificate);
+                    signedXml = signer.sign(xml, chave);
+                }
+
+                const transmitter = new NFceTransmitter(certificate);
+                let result;
+
+                if (config.ambiente === 1 && certificate) {
+                    try {
+                        result = await transmitter.send(signedXml, config);
+                    } catch (e) {
+                        result = await transmitter.sendContingency(signedXml, config, e.message);
+                    }
+                } else {
+                    result = await transmitter.sendContingency(signedXml, config,
+                        config.ambiente === 2 ? 'Ambiente de homologação' : 'Certificado não configurado'
+                    );
+                }
+
+                const xmlDir = path.join(ROOT_DIR, 'nfce_xml');
+                if (!fs.existsSync(xmlDir)) fs.mkdirSync(xmlDir, { recursive: true });
+                const xmlFileName = `${chave}.xml`;
+                const xmlFilePath = path.join(xmlDir, xmlFileName);
+                fs.writeFileSync(xmlFilePath, signedXml, 'utf8');
+
+                const newStatus = result.success ? 'Emitida' : 'Pendente';
+                const sql = `UPDATE nf_withdrawal SET status=?, authorizationProtocol=?, chNFe=?, authorizationDate=?, xmlFile=? WHERE id=?`;
+                db.run(sql, [
+                    newStatus,
+                    result.nProt || '',
+                    result.chNFe || chave,
+                    result.dhRecbto || new Date().toISOString(),
+                    xmlFileName,
+                    id,
+                ], (err) => {
+                    if (err) return res.status(500).json({ error: err.message });
+                    res.json({
+                        success: true,
+                        status: newStatus,
+                        protocol: result.nProt,
+                        chNFe: result.chNFe || chave,
+                        contingency: result.contingency || false,
+                        motivo: result.xMotivo,
+                    });
+                });
+            } catch (e) {
+                res.status(500).json({ error: `Erro na transmissão: ${e.message}` });
+            }
+        });
+    });
+});
+
+app.post('/api/nf-withdrawal/:id/contingency', authenticate, (req, res) => {
+    const id = req.params.id;
+    const justification = req.body.justification || 'Contingência offline';
+
+    db.get(`SELECT n.*, s.total as saleTotal FROM nf_withdrawal n LEFT JOIN sales s ON n.saleId = s.id WHERE n.id = ?`, [id], (err, nf) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!nf) return res.status(404).json({ error: "NF não encontrada." });
+
+        NFceConfig.getDefaults(db, async (err, config) => {
+            if (err) return res.status(500).json({ error: "Erro ao carregar configuração." });
+
+            try {
+                const saleItems = await new Promise((resolve, reject) => {
+                    db.all(`SELECT si.*, p.name as productName FROM sale_items si JOIN products p ON si.productId = p.id WHERE si.saleId = ?`, [nf.saleId], (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows || []);
+                    });
+                });
+
+                const { xml, chave } = NFceXml.generate({ ...nf, status: 'Contingencia' }, saleItems, config);
+
+                const certificate = config.certPath ? NFceCertificate.loadFromPfx(config.certPath, config.certPassword || '') : null;
+                let signedXml = xml;
+                if (certificate) {
+                    const signer = new NFceSigner(certificate);
+                    signedXml = signer.sign(xml, chave);
+                }
+
+                const xmlDir = path.join(ROOT_DIR, 'nfce_xml');
+                if (!fs.existsSync(xmlDir)) fs.mkdirSync(xmlDir, { recursive: true });
+                const xmlFileName = `${chave}-cte.xml`;
+                fs.writeFileSync(path.join(xmlDir, xmlFileName), signedXml, 'utf8');
+
+                const sql = `UPDATE nf_withdrawal SET status='Emitida', chNFe=?, authorizationDate=?, xmlFile=?, contingency=1, contingencyJustification=? WHERE id=?`;
+                db.run(sql, [chave, new Date().toISOString(), xmlFileName, justification, id], (err) => {
+                    if (err) return res.status(500).json({ error: err.message });
+                    res.json({ success: true, status: 'Emitida (Contingência)', chNFe: chave, justification });
+                });
+            } catch (e) {
+                res.status(500).json({ error: `Erro na contingência: ${e.message}` });
+            }
+        });
+    });
+});
+
+app.get('/api/nfce/config', authenticate, (req, res) => {
+    NFceConfig.getDefaults(db, (err, config) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const safeConfig = { ...config };
+        if (safeConfig.certPassword) safeConfig.certPassword = '********';
+        res.json(safeConfig);
+    });
+});
+
+app.put('/api/nfce/config', authenticate, (req, res) => {
+    const body = req.body;
+    NFceConfig.getDefaults(db, (err, current) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const merged = { ...current, ...body };
+        merged.certPassword = body.certPassword && body.certPassword !== '********'
+            ? body.certPassword
+            : current.certPassword;
+        NFceConfig.save(db, merged, (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            const safeConfig = { ...merged };
+            if (safeConfig.certPassword) safeConfig.certPassword = '********';
+            res.json({ success: true, config: safeConfig });
+        });
+    });
+});
+
+app.get('/api/nf-withdrawal/:id/xml', authenticate, (req, res) => {
+    const id = req.params.id;
+    db.get(`SELECT xmlFile, chNFe FROM nf_withdrawal WHERE id = ?`, [id], (err, nf) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!nf) return res.status(404).json({ error: "NF não encontrada." });
+        if (!nf.xmlFile) return res.status(404).json({ error: "XML não disponível." });
+
+        const xmlDir = path.join(ROOT_DIR, 'nfce_xml');
+        const xmlPath = path.join(xmlDir, nf.xmlFile);
+        if (!fs.existsSync(xmlPath)) return res.status(404).json({ error: "Arquivo XML não encontrado em disco." });
+
+        res.setHeader('Content-Type', 'application/xml');
+        res.setHeader('Content-Disposition', `attachment; filename="${nf.xmlFile}"`);
+        res.sendFile(xmlPath);
+    });
+});
+
 // --- ROTAS DE CLIENTES ---
 app.get('/api/customers', authenticate, (req, res) => {
     db.all("SELECT * FROM customers ORDER BY name ASC", [], (err, rows) => {
@@ -328,17 +781,18 @@ app.get('/api/customers', authenticate, (req, res) => {
 });
 
 app.post('/api/customers', authenticate, (req, res) => {
-    const { name, phone } = req.body;
-    console.log('Cadastrando cliente:', name);
-    db.run(`INSERT INTO customers (name, phone) VALUES (?, ?)`, [name, phone], function(err) {
+    const c = sanitizeCustomer(req.body);
+    const sql = `INSERT INTO customers (name, phone, document, ie, address, city, state, zipCode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+    db.run(sql, [c.name, c.phone, c.document, c.ie, c.address, c.city, c.state, c.zipCode], function(err) {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true, id: this.lastID });
     });
 });
 
 app.put('/api/customers/:id', authenticate, (req, res) => {
-    const { name, phone } = req.body;
-    db.run(`UPDATE customers SET name = ?, phone = ? WHERE id = ?`, [name, phone, req.params.id], (err) => {
+    const c = sanitizeCustomer(req.body);
+    const sql = `UPDATE customers SET name=?, phone=?, document=?, ie=?, address=?, city=?, state=?, zipCode=? WHERE id=?`;
+    db.run(sql, [c.name, c.phone, c.document, c.ie, c.address, c.city, c.state, c.zipCode, req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true });
     });
@@ -395,22 +849,29 @@ app.post('/api/sales', authenticate, (req, res) => {
             const saleId = this.lastID;
             const itemSql = `INSERT INTO sale_items (saleId, productId, qty, unitPrice, subtotal) VALUES (?, ?, ?, ?, ?)`;
             
+            if (!s.items || s.items.length === 0) {
+                db.run("COMMIT");
+                return res.json({ success: true, id: saleId });
+            }
+
+            let completed = 0;
+            const totalItems = s.items.length;
             let hasError = false;
-            if (s.items && s.items.length > 0) {
-                s.items.forEach(item => {
-                    db.run(itemSql, [saleId, item.productId, item.qty, item.unitPrice, item.subtotal], (err) => {
-                        if (err) hasError = true;
-                    });
+
+            s.items.forEach(item => {
+                db.run(itemSql, [saleId, item.productId, item.qty, item.unitPrice, item.subtotal], (err) => {
+                    if (err) hasError = true;
+                    completed++;
+                    if (completed === totalItems) {
+                        if (hasError) {
+                            db.run("ROLLBACK");
+                            return res.status(500).json({ error: "Erro ao inserir itens da venda" });
+                        }
+                        db.run("COMMIT");
+                        res.json({ success: true, id: saleId });
+                    }
                 });
-            }
-
-            if (hasError) {
-                db.run("ROLLBACK");
-                return res.status(500).json({ error: "Erro ao inserir itens da venda" });
-            }
-
-            db.run("COMMIT");
-            res.json({ success: true, id: saleId });
+            });
         });
     });
 });
@@ -504,9 +965,8 @@ app.get('/api/reports/top-products', authenticate, (req, res) => {
 // --- ROTAS DE AUTENTICAÇÃO ---
 
 // Registrar novo usuário
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authLimiter, async (req, res) => {
     const { email, password } = req.body;
-    console.log('Tentativa de registro:', email);
     if (!email || !password) return res.status(400).json({ success: false, message: "E-mail e senha são obrigatórios." });
     
     try {
@@ -515,11 +975,17 @@ app.post('/api/auth/register', async (req, res) => {
         db.run(sql, [email.toLowerCase().trim(), hashedPassword, new Date().toISOString()], function(err) {
             if (err) {
                 if (err.message.includes('UNIQUE')) {
-                    return res.status(400).json({ success: false, message: "Este e-mail já está cadastrado." });
+                    return res.status(400).json({ success: false, message: "Não foi possível concluir o cadastro. Verifique os dados e tente novamente." });
                 }
                 return res.status(500).json({ success: false, message: err.message });
             }
             const token = jwt.sign({ email: email.toLowerCase().trim() }, JWT_SECRET, { expiresIn: '8h' });
+            res.cookie('authToken', token, {
+                httpOnly: true,
+                secure: hasSSL,
+                sameSite: 'strict',
+                maxAge: 8 * 60 * 60 * 1000
+            });
             res.json({ success: true, token });
         });
     } catch (error) {
@@ -547,7 +1013,7 @@ app.post('/api/settings', authenticate, (req, res) => {
 });
 
 // Login / Verificação de Senha
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ success: false, message: "Dados incompletos." });
 
@@ -556,10 +1022,16 @@ app.post('/api/auth/login', async (req, res) => {
         if (err) return res.status(500).json({ error: err.message });
         if (!row) return res.status(401).json({ success: false, message: "E-mail ou senha incorretos." });
 
-        bcrypt.compare(password, row.password, (err, isMatch) => {
+            bcrypt.compare(password, row.password, (err, isMatch) => {
             if (err) return res.status(500).json({ error: "Erro na autenticação." });
             if (isMatch) {
                 const token = jwt.sign({ email: row.email }, JWT_SECRET, { expiresIn: '8h' });
+                res.cookie('authToken', token, {
+                    httpOnly: true,
+                    secure: hasSSL,
+                    sameSite: 'strict',
+                    maxAge: 8 * 60 * 60 * 1000
+                });
                 res.json({ success: true, user: { email: row.email }, token });
             } else {
                 res.status(401).json({ success: false, message: "E-mail ou senha incorretos." });
@@ -568,12 +1040,26 @@ app.post('/api/auth/login', async (req, res) => {
     });
 });
 
-// Rota para encerrar o servidor (Shutdown)
+// Rota para encerrar o servidor (Shutdown) - apenas em modo desenvolvimento
 app.post('/api/system/shutdown', authenticate, (req, res) => {
+    if (isProduction) {
+        return res.status(403).json({ success: false, message: "Shutdown não permitido em produção." });
+    }
     res.json({ success: true, message: "Encerrando servidor..." });
     setTimeout(() => {
         process.exit(0);
     }, 1000);
+});
+
+// Rota para logout (limpa o cookie httpOnly)
+app.post('/api/auth/logout', (req, res) => {
+    res.clearCookie('authToken', { httpOnly: true, secure: hasSSL, sameSite: 'strict' });
+    res.json({ success: true });
+});
+
+// Rota para verificar se o usuário está autenticado (para guardas de rota)
+app.get('/api/auth/check', authenticate, (req, res) => {
+    res.json({ success: true, user: req.user });
 });
 
 // Rota para silenciar o erro do favicon.ico
@@ -581,8 +1067,9 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Bloquear acesso direto a arquivos sensíveis
 app.use((req, res, next) => {
-    const sensitiveFiles = ['.env', '.db', '.sqlite', 'backups'];
-    if (sensitiveFiles.some(file => req.url.includes(file))) {
+    const resolvedPath = path.resolve(PUBLIC_DIR, req.url.replace(/^\//, ''));
+    const sensitivePatterns = ['.env', '.db', '.sqlite', path.sep + 'backups' + path.sep];
+    if (sensitivePatterns.some(pattern => resolvedPath.toLowerCase().includes(pattern))) {
         return res.status(403).json({ error: "Acesso proibido" });
     }
     next();

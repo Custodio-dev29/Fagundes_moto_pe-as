@@ -22,4 +22,17 @@ export class ConfigModel {
         });
         return await response.json();
     }
+
+    async getNfceConfig() {
+        const response = await fetchWithAuth('/api/nfce/config');
+        return await response.json();
+    }
+
+    async saveNfceConfig(config) {
+        const response = await fetchWithAuth('/api/nfce/config', {
+            method: 'PUT',
+            body: JSON.stringify(config)
+        });
+        return await response.json();
+    }
 }

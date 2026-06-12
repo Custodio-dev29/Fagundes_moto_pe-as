@@ -11,6 +11,11 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// Define modo inicial como cadastro se estiver na página register.html
+if (window.location.pathname.includes('register')) {
+    localStorage.setItem('auth_initial_mode', 'register');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const app = new AuthController(new AuthModel(), new AuthView());
 });

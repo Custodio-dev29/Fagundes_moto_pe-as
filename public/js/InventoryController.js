@@ -1,3 +1,5 @@
+import { showToast, showConfirm, showPrompt } from './utils.js';
+
 export class InventoryController {
     constructor(model, view, authModel) {
         this.model = model;
@@ -33,7 +35,7 @@ export class InventoryController {
             this.view.closeRegisterModal();
             this.showInventory(); // Redireciona para o estoque para ver o novo item
         } else {
-            alert(`Erro: ${result.message}`);
+            showToast(`Erro: ${result.message}`, 'error');
         }
     }
 
@@ -50,10 +52,10 @@ export class InventoryController {
                 if (this.currentView === 'registration') this.showRegistration();
                 else this.showInventory();
             } else {
-                alert(result.message);
+                showToast(result.message, 'error');
             }
         } else {
-            alert('Senha incorreta! A alteração não foi autorizada.');
+            showToast('Senha incorreta! A alteração não foi autorizada.', 'error');
         }
     }
 
@@ -64,35 +66,36 @@ export class InventoryController {
     }
 
     async handleConfirmEdit(data) {
-        const userEmail = localStorage.getItem('currentUser');
-        const isValid = await this.authModel.authenticate(userEmail, data.password);
-
-        if (isValid && isValid.success) {
-            const result = await this.model.updateProduct(data.originalId, data);
-            if (result.success) {
-                this.view.closeEditModal();
-                this.refreshCurrentView();
-            } else {
-                alert(result.message);
-            }
-        } else {
-            alert('Senha incorreta!');
-        }
-    }
-
-    async handleConfirmDelete(data) {
-        if (!confirm('Tem certeza que deseja excluir permanentemente este produto?')) return;
+        const password = await showPrompt('Confirme sua senha para alterar este produto:');
+        if (!password) return;
 
         const userEmail = localStorage.getItem('currentUser');
-        const isValid = await this.authModel.authenticate(userEmail, data.password);
+        const isValid = await this.authModel.authenticate(userEmail, password);
+        if (!isValid || !isValid.success) return showToast('Senha incorreta! Alteração negada.', 'error');
 
-        if (isValid && isValid.success) {
-            await this.model.deleteProduct(data.id);
+        const result = await this.model.updateProduct(data.originalId, data);
+        if (result.success) {
             this.view.closeEditModal();
             this.refreshCurrentView();
         } else {
-            alert('Senha incorreta! Exclusão não autorizada.');
+            showToast(result.message, 'error');
         }
+    }
+
+    async handleConfirmDelete(id) {
+        const confirmed = await showConfirm('Tem certeza que deseja excluir permanentemente este produto?');
+        if (!confirmed) return;
+
+        const password = await showPrompt('Confirme sua senha para excluir este produto:');
+        if (!password) return;
+
+        const userEmail = localStorage.getItem('currentUser');
+        const isValid = await this.authModel.authenticate(userEmail, password);
+        if (!isValid || !isValid.success) return showToast('Senha incorreta! Exclusão negada.', 'error');
+
+        await this.model.deleteProduct(id);
+        this.view.closeEditModal();
+        this.refreshCurrentView();
     }
 
     refreshCurrentView() {

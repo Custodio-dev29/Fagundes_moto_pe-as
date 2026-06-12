@@ -22,4 +22,19 @@ export class NFEntryModel {
         });
         return await response.json();
     }
+
+    async update(id, entry) {
+        const response = await fetchWithAuth(`${this.apiUrl}/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(entry)
+        });
+        return await response.json();
+    }
+
+    async delete(id) {
+        const response = await fetchWithAuth(`${this.apiUrl}/${id}`, {
+            method: 'DELETE'
+        });
+        return await response.json();
+    }
 }

@@ -32,6 +32,9 @@
                             <li class="menu-item" id="menu-nf-entry">
                                 <a href="#"><span class="menu-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span><span class="menu-title">Entrada de NF</span></a>
                             </li>
+                            <li class="menu-item" id="menu-nf-withdrawal">
+                                <a href="#"><span class="menu-icon"><i class="fa-solid fa-file-export"></i></span><span class="menu-title">Retirada de NF</span></a>
+                            </li>
                             <li class="menu-item" id="menu-sales">
                                 <a href="#"><span class="menu-icon"><i class="fa-solid fa-cash-register"></i></span><span class="menu-title">PDV - Vendas</span></a>
                             </li>
@@ -62,7 +65,7 @@
                     </button>
                     <div id="header-title-container"></div>
                 </div>
-                <div id="header-actions-container"></div>
+                <div id="header-actions-container" ></div>
             </header>
             <div class="content-body">
             </div>
@@ -163,10 +166,6 @@
                     <label>Estoque Máximo</label>
                     <input type="number" id="editProdMaxStock" required>
                 </div>
-                <div class="form-group-inventory">
-                    <label>Senha de Confirmação</label>
-                    <input type="password" id="editProdPassword" placeholder="Sua senha atual" autocomplete="current-password" required>
-                </div>
                 <div class="modal-actions">
                     <button type="button" id="btnDeleteProduct" class="btn-delete-modal">Excluir Item</button>
                     <button type="submit" class="btn-submit-inventory">Salvar Alterações</button>
@@ -184,6 +183,7 @@
                 <p>Preencha os dados do cliente.</p>
             </div>
             <form id="customer-form">
+                <input type="hidden" id="custId">
                 <div class="form-group-inventory">
                     <label>Nome Completo</label>
                     <input type="text" id="custName" placeholder="Ex: João Silva" required>
@@ -191,6 +191,34 @@
                 <div class="form-group-inventory">
                     <label>Telefone / WhatsApp</label>
                     <input type="text" id="custPhone" placeholder="Ex: (11) 99999-9999" maxlength="15" required>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+                    <div class="form-group-inventory">
+                        <label>CPF / CNPJ</label>
+                        <input type="text" id="custDocument" placeholder="000.000.000-00">
+                    </div>
+                    <div class="form-group-inventory">
+                        <label>Inscrição Estadual</label>
+                        <input type="text" id="custIe" placeholder="IE">
+                    </div>
+                </div>
+                <div class="form-group-inventory" style="margin-top:10px">
+                    <label>Endereço</label>
+                    <input type="text" id="custAddress" placeholder="Rua, número, bairro">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">
+                    <div class="form-group-inventory">
+                        <label>Cidade</label>
+                        <input type="text" id="custCity" placeholder="Cidade">
+                    </div>
+                    <div class="form-group-inventory">
+                        <label>UF</label>
+                        <input type="text" id="custState" placeholder="SP" maxlength="2">
+                    </div>
+                    <div class="form-group-inventory">
+                        <label>CEP</label>
+                        <input type="text" id="custZipCode" placeholder="00000-000">
+                    </div>
                 </div>
                 <div class="modal-actions">
                     <button type="button" id="btnCancelCustomer" class="btn-secondary">Cancelar</button>
@@ -217,9 +245,33 @@
                     <label>Telefone / WhatsApp</label>
                     <input type="text" id="editCustPhone" maxlength="15" required>
                 </div>
-                <div class="form-group-inventory">
-                    <label>Senha de Confirmação</label>
-                    <input type="password" id="editCustPassword" placeholder="Sua senha atual" autocomplete="current-password" required>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+                    <div class="form-group-inventory">
+                        <label>CPF / CNPJ</label>
+                        <input type="text" id="editCustDocument" placeholder="000.000.000-00">
+                    </div>
+                    <div class="form-group-inventory">
+                        <label>Inscrição Estadual</label>
+                        <input type="text" id="editCustIe" placeholder="IE">
+                    </div>
+                </div>
+                <div class="form-group-inventory" style="margin-top:10px">
+                    <label>Endereço</label>
+                    <input type="text" id="editCustAddress" placeholder="Rua, número, bairro">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">
+                    <div class="form-group-inventory">
+                        <label>Cidade</label>
+                        <input type="text" id="editCustCity" placeholder="Cidade">
+                    </div>
+                    <div class="form-group-inventory">
+                        <label>UF</label>
+                        <input type="text" id="editCustState" placeholder="SP" maxlength="2">
+                    </div>
+                    <div class="form-group-inventory">
+                        <label>CEP</label>
+                        <input type="text" id="editCustZipCode" placeholder="00000-000">
+                    </div>
                 </div>
                 <div class="modal-actions">
                     <button type="button" id="btnDeleteCustomer" class="btn-delete-modal">Excluir Cliente</button>
@@ -277,6 +329,89 @@
         </div>
     </div>
 
+    <!-- Modal para Retirada de NF -->
+    <div id="nfWithdrawalModal" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-file-export"></i> Emitir NF de Saída</h3>
+                <p>Preencha os dados da nota fiscal.</p>
+            </div>
+            <form id="nf-withdrawal-form">
+                <input type="hidden" id="nwfId">
+                <div id="nwfSaleSelectGroup">
+                    <div class="form-group-inventory">
+                        <label>Selecione a Venda</label>
+                        <select id="nwfSaleId" required></select>
+                    </div>
+                </div>
+                <div id="nwfSaleInfo" style="font-weight:bold;margin-bottom:10px;color:#059c0d"></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group-inventory">
+                        <label>Nº da NF</label>
+                        <input type="text" id="nwfNumber" placeholder="000.000" required>
+                    </div>
+                    <div class="form-group-inventory">
+                        <label>Tipo</label>
+                        <select id="nwfType">
+                            <option value="NFCe">NFCe</option>
+                            <option value="NFe">NFe</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <div class="form-group-inventory">
+                        <label>CFOP</label>
+                        <select id="nwfCfop">
+                            <option value="5102">5102 - Venda</option>
+                            <option value="5405">5405 - Venda Consumidor Final</option>
+                            <option value="5656">5656 - Venda Fora do Estado</option>
+                        </select>
+                    </div>
+                    <div class="form-group-inventory">
+                        <label>Valor Total (R$)</label>
+                        <input type="number" id="nwfTotalValue" step="0.01" readonly style="background:#f0f0f0;font-weight:bold">
+                    </div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <div class="form-group-inventory">
+                        <label>Cliente</label>
+                        <input type="text" id="nwfCustomerName" readonly style="background:#f0f0f0">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <div class="form-group-inventory">
+                        <label>CPF/CNPJ</label>
+                        <input type="text" id="nwfCustomerDocument" placeholder="CPF ou CNPJ do cliente">
+                    </div>
+                    <div class="form-group-inventory">
+                        <label>Endereço</label>
+                        <input type="text" id="nwfCustomerAddress" placeholder="Endereço do cliente">
+                    </div>
+                </div>
+                <div id="nwfItemsContainer"></div>
+                <div id="nwfProtocolGroup" class="form-group-inventory" style="margin-top: 10px; display:none;">
+                    <label>Protocolo SEFAZ</label>
+                    <input type="text" id="nwfProtocol" readonly style="background:#e8f5e9;color:#2e7d32;font-weight:bold">
+                </div>
+                <div id="nwfChaveGroup" class="form-group-inventory" style="margin-top: 5px; display:none;">
+                    <label>Chave de Acesso</label>
+                    <input type="text" id="nwfChave" readonly style="background:#e8f5e9;color:#1a237e;font-weight:bold;font-size:13px;letter-spacing:1px">
+                </div>
+                <div id="nwfPrintGroup" class="form-group-inventory" style="margin-top: 10px; display:none;">
+                    <button type="button" id="btnPrintDetailDANFE" class="btn-primary-action" style="width:100%;justify-content:center"><i class="fa-solid fa-print"></i> Imprimir DANFE</button>
+                </div>
+                <div id="nwfPasswordGroup" class="form-group-inventory" style="margin-top: 15px;">
+                    <label>Senha de Confirmação</label>
+                    <input type="password" id="nwfPassword" placeholder="Sua senha atual" autocomplete="current-password">
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn-submit-inventory">Emitir NF</button>
+                    <button type="button" id="btnCancelNFWithdrawal" class="btn-secondary">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal para Entrada de NF -->
     <div id="nfEntryModal" class="modal">
         <div class="modal-content" style="max-width: 500px;">
@@ -285,6 +420,7 @@
                 <p>Insira os dados da nota para atualizar o estoque e custos.</p>
             </div>
             <form id="nf-entry-form">
+                <input type="hidden" id="nfEntryId">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="form-group-inventory">
                         <label>Número da NF</label>
@@ -325,8 +461,9 @@
                 </div>
 
                 <div class="modal-actions">
-                    <button type="button" id="btnCancelNF" class="btn-secondary">Cancelar</button>
+                    <button type="button" id="btnDeleteNFEntry" class="btn-delete-modal" style="display:none">Excluir Entrada</button>
                     <button type="submit" class="btn-submit-inventory">Confirmar Entrada</button>
+                    <button type="button" id="btnCancelNF" class="btn-secondary">Cancelar</button>
                 </div>
             </form>
         </div>

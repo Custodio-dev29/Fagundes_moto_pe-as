@@ -15,9 +15,13 @@ import { ConfigController } from './ConfigController.js';
 import { NFEntryModel } from './NFEntryModel.js';
 import { NFEntryView } from './NFEntryView.js';
 import { NFEntryController } from './NFEntryController.js';
+import { NFWithdrawalModel } from './NFWithdrawalModel.js';
+import { NFWithdrawalView } from './NFWithdrawalView.js';
+import { NFWithdrawalController } from './NFWithdrawalController.js';
 import { CashClosureView } from './CashClosureView.js';
 import { CashClosureController } from './CashClosureController.js';
 import { fetchWithAuth } from './api.js';
+import { showToast, showConfirm } from './utils.js';
 
 // Remove Service Workers antigos que podem estar travando o cache/listas
 if ('serviceWorker' in navigator) {
@@ -38,6 +42,7 @@ const menuCustomers = document.getElementById('menu-customers');
 const menuSales = document.getElementById('menu-sales');
 const menuSettings = document.getElementById('menu-settings');
 const menuNFEntry = document.getElementById('menu-nf-entry');
+const menuNFWithdrawal = document.getElementById('menu-nf-withdrawal');
 const menuShutdown = document.getElementById('menu-shutdown');
 
 const toggleSidebar = () => {
@@ -53,15 +58,17 @@ const inventoryModel = new InventoryModel();
 const customerModel = new CustomerModel();
 const authModel = new AuthModel();
 
-// Proteção client-side: se não houver token, redireciona para tela de login
-try {
-    const token = authModel.getToken && authModel.getToken();
-    if (!token) {
+// Proteção client-side: verifica autenticação via cookie httpOnly
+(async () => {
+    try {
+        const isAuth = await authModel.checkAuth();
+        if (!isAuth) {
+            window.location.replace('index.html');
+        }
+    } catch (e) {
         window.location.replace('index.html');
     }
-} catch (e) {
-    window.location.replace('index.html');
-}
+})();
 
 // Controlador único para estoque
 const inventoryController = new InventoryController(
@@ -78,13 +85,24 @@ const customerController = new CustomerController(
     authModel
 );
 
+const nfWithdrawalModel = new NFWithdrawalModel();
+const nfWithdrawalView = new NFWithdrawalView();
+
+const nfWithdrawalController = new NFWithdrawalController(
+    nfWithdrawalModel,
+    nfWithdrawalView,
+    authModel
+);
+
 const saleController = new SaleController(
     new SaleModel(),
     new SaleView(),
     new SaleHistoryView(),
     customerModel,
     inventoryModel,
-    authModel
+    authModel,
+    nfWithdrawalModel,
+    nfWithdrawalController
 );
 
 const configController = new ConfigController(
@@ -96,7 +114,8 @@ const configController = new ConfigController(
 const nfEntryController = new NFEntryController(
     new NFEntryModel(),
     new NFEntryView(),
-    inventoryModel
+    inventoryModel,
+    authModel
 );
 
 const handleMenuClick = (menuId, callback) => {
@@ -144,16 +163,21 @@ if (menuNFEntry) {
     handleMenuClick('menu-nf-entry', () => nfEntryController.showNFEntries());
 }
 
+if (menuNFWithdrawal) {
+    handleMenuClick('menu-nf-withdrawal', () => nfWithdrawalController.showNFWithdrawals());
+}
+
 if (menuShutdown) {
     menuShutdown.addEventListener('click', async (e) => {
         e.preventDefault();
-        if (confirm('Deseja realmente desligar o servidor e encerrar o sistema?')) {
+        const confirmed = await showConfirm('Deseja realmente desligar o servidor e encerrar o sistema?');
+        if (confirmed) {
             try {
                 await fetchWithAuth('/api/system/shutdown', { method: 'POST' });
                 document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column;"><h1>Sistema Encerrado</h1><p>O servidor foi desligado com sucesso. Pode fechar esta aba.</p></div>';
                 setTimeout(() => window.close(), 2000);
             } catch (err) {
-                alert('Servidor desligado.');
+                showToast('Servidor desligado.', 'info');
             }
         }
     });

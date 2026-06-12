@@ -20,7 +20,13 @@ export class CustomerModel {
             method: 'POST',
             body: JSON.stringify({
                 name: customer.name.trim(),
-                phone: customer.phone.trim()
+                phone: customer.phone.trim(),
+                document: customer.document ? customer.document.trim() : '',
+                ie: customer.ie ? customer.ie.trim() : '',
+                address: customer.address ? customer.address.trim() : '',
+                city: customer.city ? customer.city.trim() : '',
+                state: customer.state ? customer.state.trim() : '',
+                zipCode: customer.zipCode ? customer.zipCode.trim() : ''
             })
         });
         return await response.json();
@@ -31,7 +37,13 @@ export class CustomerModel {
             method: 'PUT',
             body: JSON.stringify({
                 name: data.name.trim(),
-                phone: data.phone.trim()
+                phone: data.phone.trim(),
+                document: data.document ? data.document.trim() : '',
+                ie: data.ie ? data.ie.trim() : '',
+                address: data.address ? data.address.trim() : '',
+                city: data.city ? data.city.trim() : '',
+                state: data.state ? data.state.trim() : '',
+                zipCode: data.zipCode ? data.zipCode.trim() : ''
             })
         });
         return await response.json();

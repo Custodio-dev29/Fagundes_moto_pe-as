@@ -1,9 +1,13 @@
+import { escapeHtml, showToast } from './utils.js';
+
 export class NFEntryView {
     constructor() {
         this.container = document.querySelector('.content-body');
+        this.entries = [];
     }
 
     render(entries, products) {
+        this.entries = entries;
         document.getElementById('header-title-container').innerHTML = `<h2><i class="fa-solid fa-file-invoice-dollar"></i> Entrada de Notas Fiscais</h2>`;
         document.getElementById('header-actions-container').innerHTML = `
             <button id="btn-open-nf-modal" class="btn-primary-action"><i class="fa-solid fa-plus"></i> Nova Entrada</button>
@@ -27,40 +31,75 @@ export class NFEntryView {
                                 <th>V. Custo</th>
                                 <th>V. Venda</th>
                                 <th>Margem</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="nfTableBody">
                             ${entries.length > 0 ? entries.map(n => `
                                 <tr>
                                     <td>${new Date(n.date).toLocaleDateString('pt-BR')}</td>
-                                    <td>${n.nfNumber}</td>
-                                    <td>#${n.productId} - ${n.productName}</td>
-                                    <td>${n.supplierName || '-'}</td>
+                                    <td>${escapeHtml(n.nfNumber)}</td>
+                                    <td>#${escapeHtml(n.productId)} - ${escapeHtml(n.productName)}</td>
+                                    <td>${escapeHtml(n.supplierName) || '-'}</td>
                                     <td>${n.qty}</td>
                                     <td>R$ ${n.unitPrice.toFixed(2)}</td>
                                     <td>R$ ${n.sellingPrice.toFixed(2)}</td>
                                     <td>${n.profitMargin.toFixed(2)}%</td>
+                                    <td>
+                                        <button class="btn-action btn-edit-nf" data-id="${n.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                    </td>
                                 </tr>
-                            `).join('') : '<tr><td colspan="8" style="text-align:center">Nenhuma entrada registrada.</td></tr>'}
+                            `).join('') : '<tr><td colspan="9" style="text-align:center">Nenhuma entrada registrada.</td></tr>'}
                         </tbody>
                     </table>
                 </div>
             </div>
         `;
 
-        // Preenche o datalist para o autocomplete do código
         const datalist = document.getElementById('nfProductList');
         if (datalist) {
-            datalist.innerHTML = products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            datalist.innerHTML = products.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('');
         }
     }
 
-    showModal() {
+    showModal(entry = null) {
         const modal = document.getElementById('nfEntryModal');
-        if (modal) {
-            document.getElementById('nf-entry-form').reset();
-            modal.classList.add('active');
+        if (!modal) return;
+
+        const form = document.getElementById('nf-entry-form');
+        form.reset();
+        document.getElementById('nfEntryId').value = '';
+
+        const modalTitle = modal.querySelector('.modal-header h3');
+        const modalDesc = modal.querySelector('.modal-header p');
+        const submitBtn = modal.querySelector('button[type="submit"]');
+        const deleteBtn = document.getElementById('btnDeleteNFEntry');
+
+        if (entry) {
+            document.getElementById('nfEntryId').value = entry.id;
+            document.getElementById('nfNum').value = entry.nfNumber;
+            document.getElementById('nfProdId').value = `#${entry.productId} - ${entry.productName}`;
+            document.getElementById('nfQty').value = entry.qty;
+            document.getElementById('nfTotalValue').value = entry.totalValue;
+            document.getElementById('nfSellingPrice').value = entry.sellingPrice;
+
+            const unitPrice = entry.qty > 0 ? entry.totalValue / entry.qty : 0;
+            document.getElementById('nfUnitPrice').value = `R$ ${unitPrice.toFixed(2)}`;
+            const margin = unitPrice > 0 ? ((entry.sellingPrice - unitPrice) / unitPrice) * 100 : 0;
+            document.getElementById('nfMargin').value = margin.toFixed(2) + "%";
+
+            modalTitle.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Editar Entrada de NF';
+            modalDesc.textContent = 'Altere os dados ou exclua a nota fiscal.';
+            submitBtn.textContent = 'Salvar Alterações';
+            if (deleteBtn) deleteBtn.style.display = '';
+        } else {
+            modalTitle.innerHTML = '<i class="fa-solid fa-file-circle-plus"></i> Registrar Entrada de NF';
+            modalDesc.textContent = 'Insira os dados da nota para atualizar o estoque e custos.';
+            submitBtn.textContent = 'Confirmar Entrada';
+            if (deleteBtn) deleteBtn.style.display = 'none';
         }
+
+        modal.classList.add('active');
     }
 
     closeModal() {
@@ -72,7 +111,6 @@ export class NFEntryView {
         const input = document.getElementById('nfSearch');
         if (!input) return;
         input.addEventListener('input', (e) => {
-            // Normaliza o termo de busca: minúsculas, remove acentos e espaços extras
             const searchTerm = e.target.value.toLowerCase()
                 .normalize("NFD")
                 .replace(/[\u0300-\u036f]/g, "")
@@ -85,18 +123,16 @@ export class NFEntryView {
                 return;
             }
 
-            const searchWords = searchTerm.split(/\s+/); // Divide por espaços
+            const searchWords = searchTerm.split(/\s+/);
             rows.forEach(row => {
-                // Normaliza o texto da linha para comparação
                 const rowText = row.textContent.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                // Verifica se TODAS as palavras da busca estão presentes na linha
                 const isMatch = searchWords.every(word => rowText.includes(word));
                 row.style.display = isMatch ? '' : 'none';
             });
         });
     }
 
-    bindAddNF(handler, products) {
+    bindFormSubmit(addHandler, editHandler, products) {
         const form = document.getElementById('nf-entry-form');
         const prodIdInput = document.getElementById('nfProdId');
         const qtyInput = document.getElementById('nfQty');
@@ -105,6 +141,7 @@ export class NFEntryView {
         const sellingPriceInput = document.getElementById('nfSellingPrice');
         const marginInput = document.getElementById('nfMargin');
         const btnCancel = document.getElementById('btnCancelNF');
+        const entryIdInput = document.getElementById('nfEntryId');
 
         if (!form) return;
 
@@ -118,7 +155,6 @@ export class NFEntryView {
                 String(p.id) === val || p.name.toLowerCase().trim() === val
             );
             
-            // Ao encontrar o produto, formata o campo no estilo #ID - Nome
             const isExactMatch = product && (String(product.id) === val || product.name.toLowerCase().trim() === val);
             if (isExactMatch) {
                 e.target.value = `#${product.id} - ${product.name}`;
@@ -150,10 +186,10 @@ export class NFEntryView {
                 String(p.id) === String(val) || p.name.toLowerCase() === val.toLowerCase()
             );
 
-            if (!product) return alert('Produto não encontrado. Selecione um item válido da lista.');
+            if (!product) return showToast('Produto não encontrado. Selecione um item válido da lista.', 'warning');
 
             const unitPrice = parseFloat(totalValueInput.value) / parseFloat(qtyInput.value);
-            handler({
+            const data = {
                 nfNumber: document.getElementById('nfNum').value,
                 productId: product.id,
                 qty: parseInt(qtyInput.value),
@@ -161,7 +197,35 @@ export class NFEntryView {
                 unitPrice: unitPrice,
                 sellingPrice: parseFloat(sellingPriceInput.value),
                 profitMargin: unitPrice > 0 ? ((parseFloat(sellingPriceInput.value) - unitPrice) / unitPrice) * 100 : 0
-            });
+            };
+
+            const entryId = entryIdInput.value;
+            if (entryId) {
+                editHandler(parseInt(entryId), data);
+            } else {
+                addHandler(data);
+            }
         };
+    }
+
+    bindEditNF() {
+        if (this._editBound) return;
+        this._editBound = true;
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-edit-nf');
+            if (!btn) return;
+            const id = parseInt(btn.dataset.id);
+            const entry = this.entries.find(n => n.id === id);
+            if (entry) this.showModal(entry);
+        });
+    }
+
+    bindModalDelete(handler) {
+        if (this._deleteBound) return;
+        this._deleteBound = true;
+        document.getElementById('btnDeleteNFEntry').addEventListener('click', () => {
+            const id = document.getElementById('nfEntryId').value;
+            if (id) handler(parseInt(id));
+        });
     }
 }

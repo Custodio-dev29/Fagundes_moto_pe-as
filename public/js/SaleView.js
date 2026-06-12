@@ -1,3 +1,5 @@
+import { escapeHtml, showToast } from './utils.js';
+
 export class SaleView {
     constructor() {
         this.container = document.querySelector('.content-body');
@@ -19,7 +21,7 @@ export class SaleView {
                             <input type="text" id="salePart" list="saleProductsList" placeholder="Digite para buscar..." style="background:#fff; height: 42px; padding: 0 10px 0 35px; width: 100%; border-radius: 6px; border: 1px solid #ddd; outline: none; transition: border-color 0.2s;">
                         </div>
                         <datalist id="saleProductsList">
-                            ${products.map(p => `<option value="${p.id}">${p.name} | Est: ${p.stock}</option>`).join('')}
+                            ${products.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} | Est: ${p.stock}</option>`).join('')}
                         </datalist>
                     </div>
                     <div class="form-group-inventory" style="width: 130px;">
@@ -73,7 +75,7 @@ export class SaleView {
                                     <input type="text" id="saleCustomer" list="saleCustomersList" placeholder="Busque por nome ou ID..." required style="background:#fff; height: 42px; padding: 0 10px 0 35px; width: 100%; border-radius: 6px; border: 1px solid #ddd; outline: none; transition: border-color 0.2s;">
                                 </div>
                                 <datalist id="saleCustomersList">
-                                    ${customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                                    ${customers.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('')}
                                 </datalist>
                             </div>
                             <div class="form-group-inventory">
@@ -111,7 +113,7 @@ export class SaleView {
         } else {
             tbody.innerHTML = this.currentCart.map((item, index) => `
                 <tr>
-                    <td style="text-align: left;">${item.productName}</td>
+                    <td style="text-align: left;">${escapeHtml(item.productName)}</td>
                     <td>R$ ${item.unitPrice.toFixed(2)}</td>
                     <td>${item.qty}</td>
                     <td style="font-weight: bold;">R$ ${item.subtotal.toFixed(2)}</td>
@@ -188,11 +190,11 @@ export class SaleView {
                 String(p.id) === String(val) || p.name.toLowerCase() === val.toLowerCase()
             );
 
-            if (!product || qty <= 0) return alert('Selecione um produto e quantidade válida.');
+            if (!product || qty <= 0) return showToast('Selecione um produto e quantidade válida.', 'warning');
             
             // Validação básica de estoque antes de colocar no carrinho
             if (product.stock < qty) {
-                return alert(`Estoque insuficiente! Disponível: ${product.stock}`);
+                return showToast(`Estoque insuficiente! Disponível: ${product.stock}`, 'warning');
             }
             
             this.currentCart.push({
@@ -220,7 +222,7 @@ export class SaleView {
 
         form.onsubmit = (e) => {
             e.preventDefault();
-            if (this.currentCart.length === 0) return alert('Adicione pelo menos um item à venda.');
+            if (this.currentCart.length === 0) return showToast('Adicione pelo menos um item à venda.', 'warning');
 
             let custVal = customerInput.value.trim();
             if (custVal.startsWith('#')) {
@@ -231,7 +233,7 @@ export class SaleView {
                 String(c.id) === custVal || c.name.toLowerCase() === custVal.toLowerCase()
             );
 
-            if (!customer) return alert('Selecione um cliente válido.');
+            if (!customer) return showToast('Selecione um cliente válido.', 'warning');
 
             handler({
                 customerId: customer.id,

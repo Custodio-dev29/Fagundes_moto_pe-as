@@ -1,3 +1,5 @@
+import { showToast, showConfirm, showPrompt } from './utils.js';
+
 export class CustomerController {
     constructor(model, view, authModel) {
         this.model = model;
@@ -30,37 +32,44 @@ export class CustomerController {
     }
 
     async handleConfirmEdit(data) {
-        const userEmail = localStorage.getItem('currentUser');
-        const isValid = await this.authModel.authenticate(userEmail, data.password);
-
-        if (isValid && isValid.success) {
-            const result = await this.model.update(data.id, {
-                name: data.name,
-                phone: data.phone
-            });
-            if (result.success) {
-                this.view.closeEditModal();
-                this.showCustomers();
-            } else {
-                alert(result.message);
-            }
-        } else {
-            alert('Senha incorreta!');
-        }
-    }
-
-    async handleConfirmDelete(data) {
-        if (!confirm('Tem certeza que deseja excluir este cliente?')) return;
+        const password = await showPrompt('Confirme sua senha para alterar este cliente:');
+        if (!password) return;
 
         const userEmail = localStorage.getItem('currentUser');
-        const isValid = await this.authModel.authenticate(userEmail, data.password);
+        const isValid = await this.authModel.authenticate(userEmail, password);
+        if (!isValid || !isValid.success) return showToast('Senha incorreta! Alteração negada.', 'error');
 
-        if (isValid && isValid.success) {
-            await this.model.delete(data.id);
+        const result = await this.model.update(data.id, {
+            name: data.name,
+            phone: data.phone,
+            document: data.document,
+            ie: data.ie,
+            address: data.address,
+            city: data.city,
+            state: data.state,
+            zipCode: data.zipCode
+        });
+        if (result.success) {
             this.view.closeEditModal();
             this.showCustomers();
         } else {
-            alert('Senha incorreta! Exclusão não autorizada.');
+            showToast(result.message, 'error');
         }
+    }
+
+    async handleConfirmDelete(id) {
+        const confirmed = await showConfirm('Tem certeza que deseja excluir este cliente?');
+        if (!confirmed) return;
+
+        const password = await showPrompt('Confirme sua senha para excluir este cliente:');
+        if (!password) return;
+
+        const userEmail = localStorage.getItem('currentUser');
+        const isValid = await this.authModel.authenticate(userEmail, password);
+        if (!isValid || !isValid.success) return showToast('Senha incorreta! Exclusão negada.', 'error');
+
+        await this.model.delete(id);
+        this.view.closeEditModal();
+        this.showCustomers();
     }
 }

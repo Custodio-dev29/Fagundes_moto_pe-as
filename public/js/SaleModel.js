@@ -14,6 +14,16 @@ export class SaleModel {
         }
     }
 
+    async getItems(saleId) {
+        try {
+            const response = await fetchWithAuth(`${this.apiUrl}/${saleId}/items`);
+            return await response.json();
+        } catch (e) {
+            console.error("Erro ao ler itens da venda:", e);
+            return [];
+        }
+    }
+
     async add(sale) {
         const response = await fetchWithAuth(this.apiUrl, {
             method: 'POST',

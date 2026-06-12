@@ -17,11 +17,11 @@ export class AuthModel {
             const response = await fetch(`${this.apiUrl}/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password }),
+                credentials: 'same-origin'
             });
             const data = await response.json();
             if (data && data.token) {
-                localStorage.setItem('authToken', data.token);
                 localStorage.setItem('currentUser', email.toLowerCase().trim());
             }
             return data;
@@ -35,11 +35,11 @@ export class AuthModel {
             const response = await fetch(`${this.apiUrl}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password }),
+                credentials: 'same-origin'
             });
             const data = await response.json();
             if (data && data.success && data.token) {
-                localStorage.setItem('authToken', data.token);
                 localStorage.setItem('currentUser', email.toLowerCase().trim());
             }
             return data;
@@ -48,12 +48,24 @@ export class AuthModel {
         }
     }
 
-    getToken() {
-        return localStorage.getItem('authToken');
+    async checkAuth() {
+        try {
+            const response = await fetch(`${this.apiUrl}/check`, {
+                credentials: 'same-origin'
+            });
+            return response.ok;
+        } catch (e) {
+            return false;
+        }
     }
 
-    clearToken() {
-        localStorage.removeItem('authToken');
+    async clearToken() {
+        try {
+            await fetch(`${this.apiUrl}/logout`, {
+                method: 'POST',
+                credentials: 'same-origin'
+            });
+        } catch (e) {}
         localStorage.removeItem('currentUser');
     }
 }

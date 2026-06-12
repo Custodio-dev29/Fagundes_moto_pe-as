@@ -1,3 +1,5 @@
+import { escapeHtml } from './utils.js';
+
 export class CustomerView {
     constructor() {
         this.container = document.querySelector('.content-body');
@@ -17,21 +19,25 @@ export class CustomerView {
                         <tr>
                             <th>Nome</th>
                             <th>Telefone</th>
+                            <th>CPF/CNPJ</th>
+                            <th>Cidade</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody id="customerTableBody">
                         ${customers.length > 0 ? customers.map(c => `
                             <tr>
-                                <td>${c.name}</td>
-                                <td>${c.phone}</td>
+                                <td>${escapeHtml(c.name)}</td>
+                                <td>${escapeHtml(c.phone)}</td>
+                                <td>${escapeHtml(c.document) || '-'}</td>
+                                <td>${escapeHtml(c.city) || '-'}</td>
                                 <td>
-                                    <button class="btn-edit-action" data-id="${c.id}" title="Editar cliente">
+                                    <button class="btn-edit-action" data-id="${escapeHtml(c.id)}" title="Editar cliente">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </button>
                                 </td>
                             </tr>
-                        `).join('') : '<tr><td colspan="3">Nenhum cliente cadastrado.</td></tr>'}
+                        `).join('') : '<tr><td colspan="5">Nenhum cliente cadastrado.</td></tr>'}
                     </tbody>
                 </table>
             </div>
@@ -58,7 +64,12 @@ export class CustomerView {
             document.getElementById('editCustId').value = customer.id;
             document.getElementById('editCustName').value = customer.name;
             document.getElementById('editCustPhone').value = customer.phone;
-            document.getElementById('editCustPassword').value = '';
+            document.getElementById('editCustDocument').value = customer.document || '';
+            document.getElementById('editCustIe').value = customer.ie || '';
+            document.getElementById('editCustAddress').value = customer.address || '';
+            document.getElementById('editCustCity').value = customer.city || '';
+            document.getElementById('editCustState').value = customer.state || '';
+            document.getElementById('editCustZipCode').value = customer.zipCode || '';
             modal.classList.add('active');
         }
     }
@@ -93,7 +104,13 @@ export class CustomerView {
             e.preventDefault();
             handler({
                 name: document.getElementById('custName').value,
-                phone: document.getElementById('custPhone').value
+                phone: document.getElementById('custPhone').value,
+                document: document.getElementById('custDocument').value,
+                ie: document.getElementById('custIe').value,
+                address: document.getElementById('custAddress').value,
+                city: document.getElementById('custCity').value,
+                state: document.getElementById('custState').value,
+                zipCode: document.getElementById('custZipCode').value
             });
         });
     }
@@ -116,18 +133,22 @@ export class CustomerView {
         this._applyPhoneMask(document.getElementById('editCustPhone'));
         btnCancel.onclick = () => this.closeEditModal();
         
-        btnDelete.onclick = () => onDelete({
-            id: document.getElementById('editCustId').value,
-            password: document.getElementById('editCustPassword').value
-        });
+        btnDelete.onclick = () => onDelete(
+            parseInt(document.getElementById('editCustId').value)
+        );
 
         form.onsubmit = (e) => {
             e.preventDefault();
             onUpdate({
-                id: document.getElementById('editCustId').value,
+                id: parseInt(document.getElementById('editCustId').value),
                 name: document.getElementById('editCustName').value,
                 phone: document.getElementById('editCustPhone').value,
-                password: document.getElementById('editCustPassword').value
+                document: document.getElementById('editCustDocument').value,
+                ie: document.getElementById('editCustIe').value,
+                address: document.getElementById('editCustAddress').value,
+                city: document.getElementById('editCustCity').value,
+                state: document.getElementById('editCustState').value,
+                zipCode: document.getElementById('editCustZipCode').value
             });
         };
     }

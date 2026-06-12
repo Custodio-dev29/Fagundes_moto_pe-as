@@ -1,3 +1,5 @@
+import { showToast } from './utils.js';
+
 export class AuthController {
     constructor(model, view) {
         this.model = model;
@@ -43,21 +45,21 @@ export class AuthController {
                     window.location.replace('main.html');
                 } else {
                     this.view.setLoading(false);
-                    alert('Erro: Usuário ou senha incorretos.');
+                    showToast('Erro: Usuário ou senha incorretos.', 'error');
                 }
             } else {
                 const result = await this.model.register(data.email, data.password);
                 this.view.setLoading(false);
 
                 if (result.success) {
-                    alert('Cadastro realizado com sucesso! Agora você já pode entrar.');
+                    showToast('Cadastro realizado com sucesso!', 'success');
                     this.view.toggleAuthMode();
                 } else {
-                    alert(`Erro: ${result.message}`);
+                    showToast(`Erro: ${result.message}`, 'error');
                 }
             }
         } else {
-            alert('Por favor, verifique os campos destacados em vermelho.');
+            showToast('Por favor, verifique os campos destacados em vermelho.', 'warning');
         }
     }
 }
